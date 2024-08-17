@@ -1,11 +1,11 @@
-using JetBrains.Annotations;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 [CustomEditor(typeof(OSMReader))]
-public class OSMReader_Inspector : Editor
+[ExecuteInEditMode]
+public class OSMReader_Inspector : UnityEditor.Editor
 {
     public override VisualElement CreateInspectorGUI()
     {
