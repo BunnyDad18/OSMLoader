@@ -26,6 +26,13 @@ public class OSMReader : MonoBehaviour
     private WayRender render;
     private WayRender Render { get { if (render == null) render = GetComponent<WayRender>(); return render; } }
 
+    public void ShowMap(string data)
+    {
+        XDocument document = XDocument.Parse(data);
+        PopulateNodes(document);
+        PopulateWays(document);
+    }
+
     public void Import()
     {
         XDocument document = XDocument.Parse(osmData.text);
