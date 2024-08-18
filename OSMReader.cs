@@ -5,8 +5,17 @@ using UnityEngine;
 public class OSMReader : MonoBehaviour
 {
     public TextAsset osmData;
-    public int lineCount;
+    public int lineCount = 2000;
     public Transform mapParent;
+    public Transform MapParent { get
+        {
+            if(mapParent == null)
+            {
+                mapParent = transform;
+            }
+            return mapParent;
+        }
+    }
     public string dataPath;
     public int nodeCount;
     public int wayCount;
@@ -26,11 +35,15 @@ public class OSMReader : MonoBehaviour
     private WayRender render;
     private WayRender Render { get { if (render == null) render = GetComponent<WayRender>(); return render; } }
 
+    private Vector3 _offset = new Vector3(51.508f, 0, 0.070f);
+
     public void ShowMap(string data)
     {
         XDocument document = XDocument.Parse(data);
         PopulateNodes(document);
         PopulateWays(document);
+        GetComponent<WayRender>().SetOffset(_offset.x, _offset.y, _offset.z);
+        PopulateWays();
     }
 
     public void Import()
@@ -55,6 +68,7 @@ public class OSMReader : MonoBehaviour
             if (nodes.ContainsKey(newNode.id)) continue;
             nodes.Add(newNode.id, newNode);
             nodeCount++;
+            _offset = new Vector3(newNode.lat, 0, newNode.lon);
         }
     }
 
@@ -96,9 +110,9 @@ public class OSMReader : MonoBehaviour
 
     public void DestroyChildern()
     {
-        for(int i = mapParent.childCount - 1; i >= 0; i--)
+        for(int i = MapParent.childCount - 1; i >= 0; i--)
         {
-            DestroyImmediate(mapParent.GetChild(i).gameObject);
+            DestroyImmediate(MapParent.GetChild(i).gameObject);
         }
     }
 
@@ -131,13 +145,13 @@ public class OSMReader : MonoBehaviour
             int index = i + offset;
             if (index >= ways.Count) break;
             Way way = ways[index];
-            if (SkipWay(way) || !Render.RenderWay(way, mapParent))
+            if (SkipWay(way) || !Render.RenderWay(way, MapParent))
             {
                 offset++;
                 i--;
                 continue;
             }
         }
-        mapParent.name = $"Main - {mapParent.childCount}";
+        //MapParent.name = $"Main - {MapParent.childCount}";
     }
 }

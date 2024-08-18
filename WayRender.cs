@@ -9,6 +9,13 @@ public class WayRender : MonoBehaviour
     private OSMReader reader;
     private OSMReader Reader { get { if(reader == null) reader = GetComponent<OSMReader>(); return reader; } }
 
+    private Vector3 _offset = Vector3.zero;
+
+    public void SetOffset(float x, float y, float z)
+    {
+        _offset = new Vector3 (x, y, z);
+    }
+
     public bool RenderWay(Way way, Transform parent)
     {
         Color wayColor = GetColor(way);
@@ -83,9 +90,9 @@ public class WayRender : MonoBehaviour
         {
             Node node = Reader.nodes[childElement];
             Vector3 newPosition = new Vector3(node.lat, 0, node.lon);
-            newPosition -= new Vector3(51.508f, 0, 0.070f);
+            newPosition -= _offset;
             newPosition.z *= -1;
-            newPosition *= 10000;
+            newPosition *= 100000;
             positions.Add(newPosition);
         }
     }
@@ -93,7 +100,7 @@ public class WayRender : MonoBehaviour
     private void SetupLineRenderer(GameObject gameObject, List<Vector3> positions, Color color)
     {
         LineRenderer lineRenderer = gameObject.AddComponent<LineRenderer>();
-        lineRenderer.material = lineMaterial;
+        lineRenderer.material = MaterialLibrary.Instance.Lines;
 
         lineRenderer.positionCount = positions.Count;
         lineRenderer.SetPositions(positions.ToArray());
@@ -111,7 +118,7 @@ public class WayRender : MonoBehaviour
         meshFilter.sharedMesh = OSMMeshBuilder.Get(positions, height);
 
         MeshRenderer renderer = gameObject.AddComponent<MeshRenderer>();
-        renderer.sharedMaterial = Instantiate(meshMaterial);
+        renderer.sharedMaterial = Instantiate(MaterialLibrary.Instance.Buildings);
         renderer.sharedMaterial.color = color;
     }
 }
