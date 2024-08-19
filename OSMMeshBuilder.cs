@@ -11,6 +11,7 @@ public class RunwayMeshBuilder
         var mesh = new Mesh();
         List<Vector3> orderedVerts = new List<Vector3>();
         List<int> tris = new List<int>();
+        List<Vector2> uvs = new List<Vector2>();
         List<Vector3>[] verts = GetPostions(positions, width);
         for (int i = 0; i < verts.Length; i++)
         {
@@ -20,16 +21,31 @@ public class RunwayMeshBuilder
                 if (j >= verts[i].Count - 1) break;
                 tris.Add(orderedVerts.Count);
                 orderedVerts.Add(verts[i][j]);
+                uvs.Add(new Vector2(0, 0));
                 tris.Add(orderedVerts.Count);
                 orderedVerts.Add(verts[i + 1][j]);
+                uvs.Add(new Vector2(0, 1));
                 tris.Add(orderedVerts.Count);
-                orderedVerts.Add(verts[i][j+1]);
+                orderedVerts.Add(verts[i][j + 1]);
+                uvs.Add(new Vector2(1, 0));
+
+                tris.Add(orderedVerts.Count);
+                orderedVerts.Add(verts[i][j + 1]);
+                uvs.Add(new Vector2(1, 0));
+                tris.Add(orderedVerts.Count);
+                orderedVerts.Add(verts[i + 1][j]);
+                uvs.Add(new Vector2(0, 1));
+                tris.Add(orderedVerts.Count);
+                orderedVerts.Add(verts[i + 1][j + 1]);
+                uvs.Add(new Vector2(1, 1));
             }
         }
         mesh.SetVertices(orderedVerts.ToArray());
         mesh.SetIndices(tris.ToArray(), MeshTopology.Triangles, 0);
+        mesh.SetUVs(0, uvs.ToArray());
         mesh.RecalculateBounds();
         mesh.RecalculateNormals();
+        mesh.RecalculateUVDistributionMetrics();
         return mesh;
     }
 
@@ -43,11 +59,11 @@ public class RunwayMeshBuilder
             {
                 direction = positions[i + 1] - positions[i];
             }
-            Vector3 right = Vector3.forward;//Vector3.Cross(direction, Vector3.up).normalized;
+            Vector3 right = Vector3.Cross(direction.normalized, Vector3.up).normalized;
             verts[i] = new List<Vector3>
             {
-                positions[i] - (right * width),
-                positions[i] + (right * width)
+                positions[i] - (right * (width / 2)),
+                positions[i] + (right * (width / 2))
             };
         }
         return verts;

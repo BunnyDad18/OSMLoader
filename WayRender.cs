@@ -21,7 +21,7 @@ public class WayRender : MonoBehaviour
     {
         Color wayColor = GetColor(way);
 
-        if (way.type is WayType.Water or WayType.Grass or WayType.Wood or WayType.Wetland or WayType.Aerodrome or WayType.Runway)
+        if (way.type is WayType.Water or WayType.Grass or WayType.Wood or WayType.Wetland or WayType.Aerodrome)
         {
             GameObject newWayObject = SetupWayGameObject(way, parent);
             List<Vector3> positions = new List<Vector3>();
@@ -131,7 +131,7 @@ public class WayRender : MonoBehaviour
         renderer.sharedMaterial.color = color;
     }
 
-    private void SetupRunwayMesh(GameObject gameObject, List<Vector3> positions, float width = 450)
+    private void SetupRunwayMesh(GameObject gameObject, List<Vector3> positions, float width = 45)
     {
         MeshFilter meshFilter = gameObject.AddComponent<MeshFilter>();
         meshFilter.sharedMesh = RunwayMeshBuilder.Get(positions, width);
