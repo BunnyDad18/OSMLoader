@@ -1,6 +1,58 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.AI;
+using UnityEngine.UIElements;
+
+public class RunwayMeshBuilder
+{
+    public static Mesh Get(List<Vector3> positions, float width)
+    {
+        var mesh = new Mesh();
+        List<Vector3> orderedVerts = new List<Vector3>();
+        List<int> tris = new List<int>();
+        List<Vector3>[] verts = GetPostions(positions, width);
+        for (int i = 0; i < verts.Length; i++)
+        {
+            if (i >= verts.Length - 1) break;
+            for(int j = 0; j < verts[i].Count; j++)
+            {
+                if (j >= verts[i].Count - 1) break;
+                tris.Add(orderedVerts.Count);
+                orderedVerts.Add(verts[i][j]);
+                tris.Add(orderedVerts.Count);
+                orderedVerts.Add(verts[i + 1][j]);
+                tris.Add(orderedVerts.Count);
+                orderedVerts.Add(verts[i][j+1]);
+            }
+        }
+        mesh.SetVertices(orderedVerts.ToArray());
+        mesh.SetIndices(tris.ToArray(), MeshTopology.Triangles, 0);
+        mesh.RecalculateBounds();
+        mesh.RecalculateNormals();
+        return mesh;
+    }
+
+    private static List<Vector3>[] GetPostions(List<Vector3> positions, float width)
+    {
+        List<Vector3>[] verts = new List<Vector3>[positions.Count];
+        Vector3 direction = Vector3.forward;
+        for (int i = 0; i < positions.Count; i++)
+        {
+            if (i < positions.Count - 1)
+            {
+                direction = positions[i + 1] - positions[i];
+            }
+            Vector3 right = Vector3.forward;//Vector3.Cross(direction, Vector3.up).normalized;
+            verts[i] = new List<Vector3>
+            {
+                positions[i] - (right * width),
+                positions[i] + (right * width)
+            };
+        }
+        return verts;
+    }
+}
 
 public class OSMMeshBuilder
 {

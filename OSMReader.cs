@@ -51,6 +51,7 @@ public class OSMReader : MonoBehaviour
         XDocument document = XDocument.Parse(osmData.text);
         PopulateNodes(document);
         PopulateWays(document);
+        GetComponent<WayRender>().SetOffset(_offset.x, _offset.y, _offset.z);
     }
 
     private void PopulateNodes(XDocument document)
@@ -96,6 +97,7 @@ public class OSMReader : MonoBehaviour
             string value = tag.Attribute("v").Value.ToLower();
             newWay.AddTag(key, value);
         }
+        newWay.height *= 20;
     }
 
     private void PopulateNodes(XElement element, Way newWay)

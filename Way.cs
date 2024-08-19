@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using UnityEngine;
 
 public enum WayType
 {
@@ -87,6 +88,7 @@ public class Way
         if (key == "waterway" && value == "canal") return WayType.Canal;
         if (key == "aerodrome" || value == "aerodrome") return WayType.Aerodrome;
         if (key == "area:aeroway" && value == "runway") return WayType.Runway;
+        if (key == "aeroway" && value == "runway") return WayType.Runway;
         else if (key == "water") return WayType.Water;
         else if (value == "grass") return WayType.Grass;
         else if (key == "building") return WayType.Building;

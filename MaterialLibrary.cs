@@ -8,14 +8,16 @@ public class MaterialLibrary : MonoBehaviour
         get
         {
             if(_instance == null)
-                _instance = Transform.FindAnyObjectByType<MaterialLibrary>();
+                _instance = FindAnyObjectByType<MaterialLibrary>();
             return _instance;
         }
     }
 
     [SerializeField] private Material _buildings;
+    [SerializeField] private Material _runway;
     [SerializeField] private Material _lines;
 
     public Material Buildings => _buildings;
+    public Material Runway => _runway;
     public Material Lines => _lines;
 }

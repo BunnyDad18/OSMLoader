@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class WayRender : MonoBehaviour
 {
@@ -29,7 +30,7 @@ public class WayRender : MonoBehaviour
             SetupMesh(newWayObject, positions, wayColor, 0);
             if(way.type == WayType.Aerodrome)
             {
-                newWayObject.transform.position += Vector3.down * 0.1f;
+                newWayObject.transform.position += Vector3.down * 0.01f;
             }
             return true;
         }
@@ -50,6 +51,14 @@ public class WayRender : MonoBehaviour
             List<Vector3> positions = new List<Vector3>();
             AddPositions(ref positions, way);
             SetupLineRenderer(newWayObject, positions, wayColor);
+            return true;
+        }
+        if (way.type is WayType.Runway)
+        {
+            GameObject newWayObject = SetupWayGameObject(way, parent);
+            List<Vector3> positions = new List<Vector3>();
+            AddPositions(ref positions, way);
+            SetupRunwayMesh(newWayObject, positions);
             return true;
         }
         return false;
@@ -120,5 +129,14 @@ public class WayRender : MonoBehaviour
         MeshRenderer renderer = gameObject.AddComponent<MeshRenderer>();
         renderer.sharedMaterial = Instantiate(MaterialLibrary.Instance.Buildings);
         renderer.sharedMaterial.color = color;
+    }
+
+    private void SetupRunwayMesh(GameObject gameObject, List<Vector3> positions, float width = 450)
+    {
+        MeshFilter meshFilter = gameObject.AddComponent<MeshFilter>();
+        meshFilter.sharedMesh = RunwayMeshBuilder.Get(positions, width);
+
+        MeshRenderer renderer = gameObject.AddComponent<MeshRenderer>();
+        renderer.sharedMaterial = Instantiate(MaterialLibrary.Instance.Runway);
     }
 }
