@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -88,16 +89,10 @@ public class WayRender : MonoBehaviour
 
     private GameObject SetupWayGameObject(Way way, Transform parent)
     {
-        GameObject newWayObject = new GameObject($"Way");
+        GameObject newWayObject = new GameObject($"Way - {way.type}");
         newWayObject.transform.SetParent(parent);
 
-        WayData wayData = newWayObject.AddComponent<WayData>();
-        wayData.data.Add($"ID = {way.id}");
-        wayData.type = way.type;
-        foreach (KeyValuePair<string, string> tag in way.tags)
-        {
-            wayData.data.Add($"{tag.Key} - {tag.Value}");
-        }
+        newWayObject.AddComponent<WayDataVisualiser>().SetData(way);
         return newWayObject;
     }
 
@@ -148,12 +143,18 @@ public class WayRender : MonoBehaviour
         renderer.sharedMaterial = Instantiate(MaterialLibrary.Instance.Runway);
     }
 
-    private void SetupTaxiwayMesh(GameObject gameObject, List<Vector3> positions, float width = 28)
+    private void SetupTaxiwayMesh(GameObject gameObject, List<Vector3> positions, float width = 23)
     {
         MeshFilter meshFilter = gameObject.AddComponent<MeshFilter>();
         meshFilter.sharedMesh = RunwayMeshBuilder.Get(positions, width);
 
         MeshRenderer renderer = gameObject.AddComponent<MeshRenderer>();
         renderer.sharedMaterial = Instantiate(MaterialLibrary.Instance.Taxiway);
+    }
+
+    private List<Vector3> taxiwayPosition = new List<Vector3>();
+
+    internal void FinishRender()
+    {
     }
 }

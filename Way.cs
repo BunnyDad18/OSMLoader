@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using UnityEngine;
 
 public enum WayType
 {
@@ -29,7 +28,6 @@ public class Way
     public long id;
     public List<long> nodeIndexes = new List<long>();
     public Dictionary<string, string> tags = new Dictionary<string, string>();
-    public long nextWay;
     public WayType type = WayType.Other;
 
     public float height = 0;

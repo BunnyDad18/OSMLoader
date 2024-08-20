@@ -154,6 +154,7 @@ public class OSMReader : MonoBehaviour
                 continue;
             }
         }
+        Render.FinishRender();
         //MapParent.name = $"Main - {MapParent.childCount}";
     }
 }
