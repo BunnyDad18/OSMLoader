@@ -15,9 +15,11 @@ public class MaterialLibrary : MonoBehaviour
 
     [SerializeField] private Material _buildings;
     [SerializeField] private Material _runway;
+    [SerializeField] private Material _taxiway;
     [SerializeField] private Material _lines;
 
     public Material Buildings => _buildings;
     public Material Runway => _runway;
+    public Material Taxiway => _taxiway;
     public Material Lines => _lines;
 }

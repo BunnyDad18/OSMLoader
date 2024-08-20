@@ -23,21 +23,21 @@ public class RunwayMeshBuilder
                 orderedVerts.Add(verts[i][j]);
                 uvs.Add(new Vector2(0, 0));
                 tris.Add(orderedVerts.Count);
-                orderedVerts.Add(verts[i + 1][j]);
-                uvs.Add(new Vector2(0, 1));
-                tris.Add(orderedVerts.Count);
                 orderedVerts.Add(verts[i][j + 1]);
                 uvs.Add(new Vector2(1, 0));
+                tris.Add(orderedVerts.Count);
+                orderedVerts.Add(verts[i + 1][j]);
+                uvs.Add(new Vector2(0, 1));
 
                 tris.Add(orderedVerts.Count);
                 orderedVerts.Add(verts[i][j + 1]);
                 uvs.Add(new Vector2(1, 0));
                 tris.Add(orderedVerts.Count);
-                orderedVerts.Add(verts[i + 1][j]);
-                uvs.Add(new Vector2(0, 1));
-                tris.Add(orderedVerts.Count);
                 orderedVerts.Add(verts[i + 1][j + 1]);
                 uvs.Add(new Vector2(1, 1));
+                tris.Add(orderedVerts.Count);
+                orderedVerts.Add(verts[i + 1][j]);
+                uvs.Add(new Vector2(0, 1));
             }
         }
         mesh.SetVertices(orderedVerts.ToArray());

@@ -45,7 +45,7 @@ public class WayRender : MonoBehaviour
             SetupMesh(newWayObject, positions, wayColor, way.height);
             return true;
         }
-        if (way.type is WayType.Other or WayType.Taxiway)
+        if (way.type is WayType.Other)
         {
             GameObject newWayObject = SetupWayGameObject(way, parent);
             List<Vector3> positions = new List<Vector3>();
@@ -59,6 +59,14 @@ public class WayRender : MonoBehaviour
             List<Vector3> positions = new List<Vector3>();
             AddPositions(ref positions, way);
             SetupRunwayMesh(newWayObject, positions);
+            return true;
+        }
+        if (way.type is WayType.Taxiway)
+        {
+            GameObject newWayObject = SetupWayGameObject(way, parent);
+            List<Vector3> positions = new List<Vector3>();
+            AddPositions(ref positions, way);
+            SetupTaxiwayMesh(newWayObject, positions);
             return true;
         }
         return false;
@@ -138,5 +146,14 @@ public class WayRender : MonoBehaviour
 
         MeshRenderer renderer = gameObject.AddComponent<MeshRenderer>();
         renderer.sharedMaterial = Instantiate(MaterialLibrary.Instance.Runway);
+    }
+
+    private void SetupTaxiwayMesh(GameObject gameObject, List<Vector3> positions, float width = 28)
+    {
+        MeshFilter meshFilter = gameObject.AddComponent<MeshFilter>();
+        meshFilter.sharedMesh = RunwayMeshBuilder.Get(positions, width);
+
+        MeshRenderer renderer = gameObject.AddComponent<MeshRenderer>();
+        renderer.sharedMaterial = Instantiate(MaterialLibrary.Instance.Taxiway);
     }
 }
