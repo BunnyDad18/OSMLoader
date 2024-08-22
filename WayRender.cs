@@ -25,8 +25,7 @@ public class WayRender : MonoBehaviour
         if (way.type is WayType.Water or WayType.Grass or WayType.Wood or WayType.Wetland or WayType.Aerodrome)
         {
             GameObject newWayObject = SetupWayGameObject(way, parent);
-            List<Vector3> positions = new List<Vector3>();
-            AddPositions(ref positions, way);
+            List<Vector3> positions = GetPositions(way);
             positions.RemoveAt(0);
             SetupMesh(newWayObject, positions, wayColor, 0);
             if(way.type == WayType.Aerodrome)
@@ -38,8 +37,7 @@ public class WayRender : MonoBehaviour
         if (way.type == WayType.Building)
         {
             GameObject newWayObject = SetupWayGameObject(way, parent);
-            List<Vector3> positions = new List<Vector3>();
-            AddPositions(ref positions, way);
+            List<Vector3> positions = GetPositions(way);
             //SetupLineRenderer(newWayObject, positions, wayColor);
             positions.RemoveAt(0);
 
@@ -49,24 +47,21 @@ public class WayRender : MonoBehaviour
         if (way.type is WayType.Other)
         {
             GameObject newWayObject = SetupWayGameObject(way, parent);
-            List<Vector3> positions = new List<Vector3>();
-            AddPositions(ref positions, way);
+            List<Vector3> positions = GetPositions(way);
             SetupLineRenderer(newWayObject, positions, wayColor);
             return true;
         }
         if (way.type is WayType.Runway)
         {
             GameObject newWayObject = SetupWayGameObject(way, parent);
-            List<Vector3> positions = new List<Vector3>();
-            AddPositions(ref positions, way);
+            List<Vector3> positions = GetPositions(way);
             SetupRunwayMesh(newWayObject, positions);
             return true;
         }
         if (way.type is WayType.Taxiway)
         {
             GameObject newWayObject = SetupWayGameObject(way, parent);
-            List<Vector3> positions = new List<Vector3>();
-            AddPositions(ref positions, way);
+            List<Vector3> positions = GetPositions(way);
             SetupTaxiwayMesh(newWayObject, positions);
             return true;
         }
@@ -96,8 +91,9 @@ public class WayRender : MonoBehaviour
         return newWayObject;
     }
 
-    private void AddPositions(ref List<Vector3> positions, Way way)
+    private List<Vector3> GetPositions(Way way)
     {
+        List<Vector3> positions = new List<Vector3>();
         foreach (long childElement in way.nodeIndexes)
         {
             Node node = Reader.nodes[childElement];
@@ -107,6 +103,7 @@ public class WayRender : MonoBehaviour
             newPosition *= 100000;
             positions.Add(newPosition);
         }
+        return positions;
     }
 
     private void SetupLineRenderer(GameObject gameObject, List<Vector3> positions, Color color)
@@ -150,11 +147,102 @@ public class WayRender : MonoBehaviour
 
         MeshRenderer renderer = gameObject.AddComponent<MeshRenderer>();
         renderer.sharedMaterial = Instantiate(MaterialLibrary.Instance.Taxiway);
+
+        foreach (Vector3 position in positions)
+        {
+            if(taxiwayPosition.Contains(position))
+            {
+                GameObject node = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                node.transform.SetParent(transform, true);
+                node.transform.position = position;
+            }
+            taxiwayPosition.Add(position);
+        }
+    }
+
+    private void SetupTaxiwayMesh(GameObject gameObject, WayNode wayNode, float width = 23)
+    {
+        if (wayNode.rendered) return;
+        MeshFilter meshFilter = gameObject.AddComponent<MeshFilter>();
+        meshFilter.sharedMesh = WayNodeMeshBuilder.Get(wayNode, width, GetPositions);
+
+        MeshRenderer renderer = gameObject.AddComponent<MeshRenderer>();
+        renderer.sharedMaterial = Instantiate(MaterialLibrary.Instance.Taxiway);
+        wayNode.rendered = true;
     }
 
     private List<Vector3> taxiwayPosition = new List<Vector3>();
 
-    internal void FinishRender()
+    private List<Way> selectedTaxiway = new List<Way>();
+
+    public List<WayNode> _wayTrees = new List<WayNode>();
+
+    internal void RenderTxiways(List<Way> ways)
     {
+        selectedTaxiway.Clear();
+        taxiwayPosition.Clear();
+        _wayTrees.Clear();
+
+        foreach (Way way in ways)
+        {
+            if (selectedTaxiway.Contains(way)) continue;
+            WayNode currentNode = new WayNode();
+            currentNode.way = way;
+            selectedTaxiway.Add(way);
+            PopulateNode(currentNode, ways);
+            _wayTrees.Add(currentNode);
+        }
+        Debug.Log($"Number of way trees = {_wayTrees.Count}");
+
+        for(int i = 0; i < _wayTrees.Count; i++)
+        {
+            GameObject newWayObject = SetupWayGameObject(_wayTrees[i].way, transform);
+            SetupTaxiwayMesh(newWayObject, _wayTrees[i]);
+            for(int j = 0; j < _wayTrees[i].connectedWays.Count; j++)
+            {
+                GameObject newWayChildObject = SetupWayGameObject(_wayTrees[i].connectedWays[j].way, transform);
+                SetupTaxiwayMesh(newWayChildObject, _wayTrees[i].connectedWays[j]);
+            }
+        }
     }
+
+    private void LoopWayNodes(List<WayNode> wayNodes)
+    {
+        for (int i = 0; i < wayNodes.Count; i++)
+        {
+            if(wayNodes[i].rendered) continue;
+            GameObject newWayObject = SetupWayGameObject(wayNodes[i].way, transform);
+            SetupTaxiwayMesh(newWayObject, wayNodes[i]);
+            LoopWayNodes(wayNodes[i].connectedWays);
+        }
+    }
+
+    private void PopulateNode(WayNode currentNode, List<Way> ways)
+    {
+        List<Vector3> positions = GetPositions(currentNode.way);
+        foreach (Way childWay in ways)
+        {
+            List<Vector3> childPositions = GetPositions(childWay);
+            foreach (var childPosition in childPositions)
+            {
+                if (!positions.Contains(childPosition)) continue;
+                if (selectedTaxiway.Contains(childWay)) continue;
+                currentNode.connectedWays.Add(new WayNode() { way = childWay, connectedWays = new List<WayNode>() {  } });
+                selectedTaxiway.Add(childWay);
+                break;
+            }
+        }
+        foreach (WayNode childNode in currentNode.connectedWays)
+        {
+            PopulateNode(childNode, ways);
+        }
+    }
+}
+
+public class WayNode
+{
+    public Way way;
+    public List<WayNode> connectedWays = new List<WayNode>();
+    public bool connected = false;
+    public bool rendered = false;
 }

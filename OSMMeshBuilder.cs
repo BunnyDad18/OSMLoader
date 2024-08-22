@@ -1,8 +1,137 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.AI;
-using UnityEngine.UIElements;
+
+public class WayNodeMeshBuilder
+{
+    public static Mesh Get(WayNode node, float width, Func<Way, List<Vector3>> getPositions)
+    {
+        var mesh = new Mesh();
+
+        List<Vector3> positions = getPositions?.Invoke(node.way);
+        List<Vector3> childPositions = new List<Vector3>();
+        foreach(var childNode in node.connectedWays)
+        {
+            childPositions.AddRange(getPositions?.Invoke(childNode.way));
+        }
+
+        List<Vector3> orderedVerts = new List<Vector3>();
+        List<int> tris = new();
+        List<Vector2> uvs = new();
+        List<Vector3>[] verts = GetPostions(positions, childPositions, width);
+
+        for (int i = 0; i < positions.Count; i++)
+        {
+            if (i >= verts.Length - 1) break;
+            for (int j = 0; j < verts[i].Count; j++)
+            {
+                if (j >= verts[i].Count - 1) break;
+                tris.Add(orderedVerts.Count);
+                orderedVerts.Add(verts[i][j]);
+                uvs.Add(new Vector2(0, 0));
+                tris.Add(orderedVerts.Count);
+                orderedVerts.Add(verts[i][j + 1]);
+                uvs.Add(new Vector2(1, 0));
+                tris.Add(orderedVerts.Count);
+                orderedVerts.Add(verts[i + 1][j]);
+                uvs.Add(new Vector2(0, 1));
+
+                tris.Add(orderedVerts.Count);
+                orderedVerts.Add(verts[i][j + 1]);
+                uvs.Add(new Vector2(1, 0));
+                tris.Add(orderedVerts.Count);
+                orderedVerts.Add(verts[i + 1][j + 1]);
+                uvs.Add(new Vector2(1, 1));
+                tris.Add(orderedVerts.Count);
+                orderedVerts.Add(verts[i + 1][j]);
+                uvs.Add(new Vector2(0, 1));
+            }
+        }
+        mesh.SetVertices(orderedVerts.ToArray());
+        mesh.SetIndices(tris.ToArray(), MeshTopology.Triangles, 0);
+        mesh.SetUVs(0, uvs.ToArray());
+        mesh.RecalculateBounds();
+        mesh.RecalculateNormals();
+        mesh.RecalculateUVDistributionMetrics();
+        return mesh;
+    }
+
+    enum direction
+    {
+        none,
+        left,
+        right,
+        both
+    }
+
+    private static bool CheckPosition(Vector3 position, List<Vector3> childPositions, Vector3 forward, out direction direction, float width)
+    {
+        direction = direction.none;
+        foreach(Vector3 child in childPositions)
+        {
+            if (Vector3.Distance(position, child) >= width) continue;
+            if (Vector3.Dot(child, forward) < 0)
+            {
+                if (direction == direction.right)
+                {
+                    direction = direction.both;
+                    return true;
+                }
+                direction = direction.left;
+            }
+            if (Vector3.Dot(child, forward) > 0)
+            {
+                if (direction == direction.left)
+                {
+                    direction = direction.both;
+                    return true;
+                }
+                direction = direction.right;
+            }
+        }
+        return false;
+    }
+    private static List<Vector3>[] GetPostions(List<Vector3> positions, List<Vector3> childPositions, float width)
+    {
+        List<Vector3>[] verts = new List<Vector3>[positions.Count];
+        Vector3 direction = Vector3.forward;
+        for (int i = 0; i < positions.Count; i++)
+        {
+            if (i < positions.Count - 1)
+            {
+                direction = positions[i + 1] - positions[i];
+            }
+            Vector3 right = Vector3.Cross(direction.normalized, Vector3.up).normalized;
+            CheckPosition(positions[i], childPositions, direction, out direction direction1, width);
+            if (direction1 == WayNodeMeshBuilder.direction.none)
+            {
+                verts[i] = new List<Vector3>
+                {
+                    positions[i] - (right * (width / 2)),
+                    positions[i] + (right * (width / 2))
+                };
+            }
+            else if (direction1 == WayNodeMeshBuilder.direction.right)
+            {
+                verts[i] = new List<Vector3>
+                {
+                    positions[i] - (right * (width / 2)),
+                    positions[i]
+                };
+            }
+            else if (direction1 == WayNodeMeshBuilder.direction.left)
+            {
+                verts[i] = new List<Vector3>
+                {
+                    positions[i],
+                    positions[i] + (right * (width / 2))
+                };
+            }
+        }
+        return verts;
+    }
+}
 
 public class RunwayMeshBuilder
 {
@@ -10,8 +139,8 @@ public class RunwayMeshBuilder
     {
         var mesh = new Mesh();
         List<Vector3> orderedVerts = new List<Vector3>();
-        List<int> tris = new List<int>();
-        List<Vector2> uvs = new List<Vector2>();
+        List<int> tris = new();
+        List<Vector2> uvs = new();
         List<Vector3>[] verts = GetPostions(positions, width);
         for (int i = 0; i < verts.Length; i++)
         {

@@ -136,6 +136,18 @@ public class OSMReader : MonoBehaviour
         return false;
     }
 
+    private List<Way> taxiways = new List<Way>();
+
+    private bool AddTaxiway(Way way)
+    {
+        if(way.type == WayType.Taxiway)
+        {
+            taxiways.Add(way);
+            return true;
+        }
+        return false;
+    }
+
     public void PopulateWays()
     {
         DestroyChildern();
@@ -147,14 +159,14 @@ public class OSMReader : MonoBehaviour
             int index = i + offset;
             if (index >= ways.Count) break;
             Way way = ways[index];
-            if (SkipWay(way) || !Render.RenderWay(way, MapParent))
+            if (SkipWay(way) || AddTaxiway(way) || !Render.RenderWay(way, MapParent))
             {
                 offset++;
                 i--;
                 continue;
             }
         }
-        Render.FinishRender();
+        Render.RenderTxiways(taxiways);
         //MapParent.name = $"Main - {MapParent.childCount}";
     }
 }
