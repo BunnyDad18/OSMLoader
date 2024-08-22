@@ -143,7 +143,7 @@ public class OSMReader : MonoBehaviour
         if(way.type == WayType.Taxiway)
         {
             taxiways.Add(way);
-            return true;
+            return false;
         }
         return false;
     }
@@ -166,7 +166,7 @@ public class OSMReader : MonoBehaviour
                 continue;
             }
         }
-        Render.RenderTxiways(taxiways);
+        //Render.RenderTxiways(taxiways);
         //MapParent.name = $"Main - {MapParent.childCount}";
     }
 }
