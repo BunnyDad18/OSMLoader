@@ -106,6 +106,12 @@ public class WayRender : MonoBehaviour
             newPosition.z *= -1;
             newPosition *= 100000;
             positions.Add(newPosition);
+            //if(node.ways.Count > 1)
+            //{
+            //    GameObject nodeObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            //    nodeObject.transform.SetParent(this.transform);
+            //    nodeObject.transform.position = newPosition;
+            //}
         }
     }
 
@@ -150,6 +156,17 @@ public class WayRender : MonoBehaviour
 
         MeshRenderer renderer = gameObject.AddComponent<MeshRenderer>();
         renderer.sharedMaterial = Instantiate(MaterialLibrary.Instance.Taxiway);
+
+        foreach(Vector3 position in positions)
+        {
+            if (taxiwayPosition.Contains(position));
+            {
+                GameObject nodeObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                nodeObject.transform.SetParent(this.transform);
+                nodeObject.transform.position = position;
+            }
+            taxiwayPosition.Add(position);
+        }
     }
 
     private List<Vector3> taxiwayPosition = new List<Vector3>();
