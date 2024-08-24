@@ -140,25 +140,28 @@ public class RunwayMeshBuilder
             for(int j = 0; j < verts[i].Count; j++)
             {
                 if (j >= verts[i].Count - 1) break;
+                float leftUv = (float)j / (verts[i].Count - 1);
+                float rightUv = ((float)j + 1) / (verts[i].Count - 1);
+
                 tris.Add(orderedVerts.Count);
                 orderedVerts.Add(verts[i][j]);
-                uvs.Add(new Vector2(0, 0));
+                uvs.Add(new Vector2(leftUv, 0));
                 tris.Add(orderedVerts.Count);
                 orderedVerts.Add(verts[i][j + 1]);
-                uvs.Add(new Vector2(1, 0));
+                uvs.Add(new Vector2(rightUv, 0));
                 tris.Add(orderedVerts.Count);
                 orderedVerts.Add(verts[i + 1][j]);
-                uvs.Add(new Vector2(0, 1));
+                uvs.Add(new Vector2(leftUv, 1));
 
                 tris.Add(orderedVerts.Count);
                 orderedVerts.Add(verts[i][j + 1]);
-                uvs.Add(new Vector2(1, 0));
+                uvs.Add(new Vector2(rightUv, 0));
                 tris.Add(orderedVerts.Count);
                 orderedVerts.Add(verts[i + 1][j + 1]);
-                uvs.Add(new Vector2(1, 1));
+                uvs.Add(new Vector2(rightUv, 1));
                 tris.Add(orderedVerts.Count);
                 orderedVerts.Add(verts[i + 1][j]);
-                uvs.Add(new Vector2(0, 1));
+                uvs.Add(new Vector2(leftUv, 1));
             }
         }
         mesh.SetVertices(orderedVerts.ToArray());
@@ -180,10 +183,16 @@ public class RunwayMeshBuilder
             {
                 direction = positions[i + 1] - positions[i];
             }
+            if(i > 0)
+            {
+                Vector3 backDirection = positions[i] - positions[i - 1];
+                direction += backDirection;
+            }
             Vector3 right = Vector3.Cross(direction.normalized, Vector3.up).normalized;
             verts[i] = new List<Vector3>
             {
                 positions[i] - (right * (width / 2)),
+                positions[i],
                 positions[i] + (right * (width / 2))
             };
         }

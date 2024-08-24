@@ -147,16 +147,15 @@ public class WayRender : MonoBehaviour
 
         MeshRenderer renderer = gameObject.AddComponent<MeshRenderer>();
         renderer.sharedMaterial = Instantiate(MaterialLibrary.Instance.Taxiway);
+    }
 
-        foreach (Vector3 position in positions)
+    internal void RenderTxiways(List<Way> taxiways)
+    {
+        foreach(Way way in taxiways)
         {
-            if(taxiwayPosition.Contains(position))
-            {
-                GameObject node = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                node.transform.SetParent(transform, true);
-                node.transform.position = position;
-            }
-            taxiwayPosition.Add(position);
+            GameObject newWayObject = SetupWayGameObject(way, transform);
+            List<Vector3> positions = GetPositions(way);
+            SetupTaxiwayMesh(newWayObject, positions);
         }
     }
 
