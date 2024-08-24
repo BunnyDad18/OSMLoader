@@ -137,7 +137,52 @@ public class RunwayMeshBuilder
         for (int i = 0; i < verts.Length; i++)
         {
             if (i >= verts.Length - 1) break;
-            for(int j = 0; j < verts[i].Count; j++)
+            for (int j = 0; j < verts[i].Count; j++)
+            {
+                if (j >= verts[i].Count - 1) break;
+                float leftUv = (float)j / (verts[i].Count - 1);
+                float rightUv = ((float)j + 1) / (verts[i].Count - 1);
+
+                tris.Add(orderedVerts.Count);
+                orderedVerts.Add(verts[i][j]);
+                uvs.Add(new Vector2(leftUv, 0));
+                tris.Add(orderedVerts.Count);
+                orderedVerts.Add(verts[i][j + 1]);
+                uvs.Add(new Vector2(rightUv, 0));
+                tris.Add(orderedVerts.Count);
+                orderedVerts.Add(verts[i + 1][j]);
+                uvs.Add(new Vector2(leftUv, 1));
+
+                tris.Add(orderedVerts.Count);
+                orderedVerts.Add(verts[i][j + 1]);
+                uvs.Add(new Vector2(rightUv, 0));
+                tris.Add(orderedVerts.Count);
+                orderedVerts.Add(verts[i + 1][j + 1]);
+                uvs.Add(new Vector2(rightUv, 1));
+                tris.Add(orderedVerts.Count);
+                orderedVerts.Add(verts[i + 1][j]);
+                uvs.Add(new Vector2(leftUv, 1));
+            }
+        }
+        mesh.SetVertices(orderedVerts.ToArray());
+        mesh.SetIndices(tris.ToArray(), MeshTopology.Triangles, 0);
+        mesh.SetUVs(0, uvs.ToArray());
+        mesh.RecalculateBounds();
+        mesh.RecalculateNormals();
+        mesh.RecalculateUVDistributionMetrics();
+        return mesh;
+    }
+    public static Mesh Get(Way way, OSMReader Reader, float width)
+    {
+        var mesh = new Mesh();
+        List<Vector3> orderedVerts = new List<Vector3>();
+        List<int> tris = new();
+        List<Vector2> uvs = new();
+        List<Vector3>[] verts = GetPostions(way, Reader, width);
+        for (int i = 0; i < verts.Length; i++)
+        {
+            if (i >= verts.Length - 1) break;
+            for (int j = 0; j < verts[i].Count; j++)
             {
                 if (j >= verts[i].Count - 1) break;
                 float leftUv = (float)j / (verts[i].Count - 1);
@@ -179,11 +224,39 @@ public class RunwayMeshBuilder
         Vector3 direction = Vector3.forward;
         for (int i = 0; i < positions.Count; i++)
         {
+
             if (i < positions.Count - 1)
             {
                 direction = positions[i + 1] - positions[i];
             }
-            if(i > 0)
+            if (i > 0)
+            {
+                Vector3 backDirection = positions[i] - positions[i - 1];
+                direction += backDirection;
+            }
+            Vector3 right = Vector3.Cross(direction.normalized, Vector3.up).normalized;
+            verts[i] = new List<Vector3>
+            {
+                positions[i] - (right * (width / 2)),
+                positions[i],
+                positions[i] + (right * (width / 2))
+            };
+        }
+        return verts;
+    }
+
+    private static List<Vector3>[] GetPostions(Way way, OSMReader Reader, float width)
+    {
+        List<Vector3>[] verts = new List<Vector3>[way.nodeIndexes.Count];
+        Vector3 direction = Vector3.forward;
+        for (int i = 0; i < way.nodeIndexes.Count; i++)
+        {
+
+            if (i < way.nodeIndexes.Count - 1)
+            {
+                direction = positions[i + 1] - positions[i];
+            }
+            if (i > 0)
             {
                 Vector3 backDirection = positions[i] - positions[i - 1];
                 direction += backDirection;

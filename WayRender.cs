@@ -101,6 +101,7 @@ public class WayRender : MonoBehaviour
             newPosition -= _offset;
             newPosition.z *= -1;
             newPosition *= 100000;
+            node.virtualPosition = newPosition;
             positions.Add(newPosition);
         }
         return positions;
@@ -140,10 +141,10 @@ public class WayRender : MonoBehaviour
         renderer.sharedMaterial = Instantiate(MaterialLibrary.Instance.Runway);
     }
 
-    private void SetupTaxiwayMesh(GameObject gameObject, List<Vector3> positions, float width = 23)
+    private void SetupTaxiwayMesh(GameObject gameObject, Way way, float width = 23)
     {
         MeshFilter meshFilter = gameObject.AddComponent<MeshFilter>();
-        meshFilter.sharedMesh = RunwayMeshBuilder.Get(positions, width);
+        meshFilter.sharedMesh = RunwayMeshBuilder.Get(way, Reader, width);
 
         MeshRenderer renderer = gameObject.AddComponent<MeshRenderer>();
         renderer.sharedMaterial = Instantiate(MaterialLibrary.Instance.Taxiway);
@@ -155,7 +156,7 @@ public class WayRender : MonoBehaviour
         {
             GameObject newWayObject = SetupWayGameObject(way, transform);
             List<Vector3> positions = GetPositions(way);
-            SetupTaxiwayMesh(newWayObject, positions);
+            SetupTaxiwayMesh(newWayObject, way);
         }
     }
 
