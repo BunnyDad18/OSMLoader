@@ -152,10 +152,13 @@ public class WayRender : MonoBehaviour
 
     internal void RenderTxiways(List<Way> taxiways)
     {
-        foreach(Way way in taxiways)
+        foreach (Way way in taxiways)
+        {
+            GetPositions(way);
+        }
+        foreach (Way way in taxiways)
         {
             GameObject newWayObject = SetupWayGameObject(way, transform);
-            List<Vector3> positions = GetPositions(way);
             SetupTaxiwayMesh(newWayObject, way);
         }
     }

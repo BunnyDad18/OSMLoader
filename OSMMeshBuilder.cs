@@ -135,7 +135,7 @@ public class RunwayMeshBuilder
                 if (node.Value.ways.Contains(way)) continue;
                 if (Vector3.Distance(node.Value.virtualPosition, currentNode.virtualPosition) < width/2)
                 {
-                    right = Vector3.zero;
+                    right /= 2;
                     break;
                 }
             }
