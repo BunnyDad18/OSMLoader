@@ -58,13 +58,13 @@ public class WayRender : MonoBehaviour
             SetupRunwayMesh(newWayObject, positions);
             return true;
         }
-        if (way.type is WayType.Taxiway)
-        {
-            GameObject newWayObject = SetupWayGameObject(way, parent);
-            List<Vector3> positions = GetPositions(way);
-            SetupTaxiwayMesh(newWayObject, positions);
-            return true;
-        }
+        //if (way.type is WayType.Taxiway)
+        //{
+        //    GameObject newWayObject = SetupWayGameObject(way, parent);
+        //    List<Vector3> positions = GetPositions(way);
+        //    SetupTaxiwayMesh(newWayObject, positions);
+        //    return true;
+        //}
         return false;
     }
 
