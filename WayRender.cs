@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Splines;
 using UnityEngine.UIElements;
 
 public class WayRender : MonoBehaviour
@@ -87,7 +89,7 @@ public class WayRender : MonoBehaviour
         GameObject newWayObject = new GameObject($"Way - {way.type}");
         newWayObject.transform.SetParent(parent);
 
-        newWayObject.AddComponent<WayDataVisualiser>().SetData(way);
+        newWayObject.AddComponent<WayDataVisualiser>().SetData(way, Reader);
         return newWayObject;
     }
 
@@ -105,6 +107,38 @@ public class WayRender : MonoBehaviour
             positions.Add(newPosition);
         }
         return positions;
+    }
+
+    private void UpdateNodeDirections(Way way)
+    {
+        for(int i = 0; i < way.nodeIndexes.Count; i++)
+        {
+            Node node = Reader.nodes[way.nodeIndexes[i]];
+
+            Vector3 forward = Vector3.forward;
+
+            if (way.nodeIndexes.Count - 1 == i)
+            {
+                Node behindNode = Reader.nodes[way.nodeIndexes[i - 1]];
+                forward = node.virtualPosition - behindNode.virtualPosition;
+            }
+            else if (i == 0)
+            {
+                Node infrontNode = Reader.nodes[way.nodeIndexes[i + 1]];
+                forward = infrontNode.virtualPosition - node.virtualPosition;
+            }
+            else
+            {
+                Node behindNode = Reader.nodes[way.nodeIndexes[i - 1]];
+                Node infrontNode = Reader.nodes[way.nodeIndexes[i + 1]];
+                forward = node.virtualPosition - behindNode.virtualPosition;
+                forward += infrontNode.virtualPosition - node.virtualPosition;
+            }
+            EndType type = EndType.None;
+            if (i == 0) type = EndType.Beginning;
+            else if (way.nodeIndexes.Count - 1 == i) type = EndType.End;
+            node.directions.Add((forward.normalized, type));
+        }
     }
 
     private void SetupLineRenderer(GameObject gameObject, List<Vector3> positions, Color color)
@@ -141,20 +175,83 @@ public class WayRender : MonoBehaviour
         renderer.sharedMaterial = Instantiate(MaterialLibrary.Instance.Runway);
     }
 
-    private void SetupTaxiwayMesh(GameObject gameObject, Way way, float width = 23)
+    private void SetupTaxiwayMesh(GameObject gameObject, Way way, float width = 20)
     {
+        //foreach(KeyValuePair<long, Node> node in Reader.nodes)
+        //{
+        //    //if(node.Value.ways.Count > 1)
+        //    //{
+        //    //    GameObject marker = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        //    //    marker.transform.position = node.Value.virtualPosition;
+        //    //    marker.transform.localScale *= 2;
+        //    //    marker.transform.SetParent(this.transform);
+        //    //}
+        //    Debug.Log($"Way count in node {node.Value.ways.Count}");
+        //}
+
         MeshFilter meshFilter = gameObject.AddComponent<MeshFilter>();
-        meshFilter.sharedMesh = RunwayMeshBuilder.Get(way, Reader, width);
+        meshFilter.sharedMesh = RunwayMeshBuilder.Get(way, _taxiwayNodes, width);
 
         MeshRenderer renderer = gameObject.AddComponent<MeshRenderer>();
         renderer.sharedMaterial = Instantiate(MaterialLibrary.Instance.Taxiway);
     }
 
+    private Dictionary<long, Node> _taxiwayNodes = new Dictionary<long, Node>();
+
     internal void RenderTxiways(List<Way> taxiways)
     {
+        _taxiwayNodes.Clear();
         foreach (Way way in taxiways)
         {
             GetPositions(way);
+            UpdateNodeDirections(way);
+        }
+        foreach (KeyValuePair<long, Node> nodes in Reader.nodes)
+        {
+            int wayCount = nodes.Value.ways.Count;
+            foreach(Way testWay in nodes.Value.ways)
+            {
+                if(testWay.type != WayType.Taxiway)
+                {
+                    wayCount--;
+                }
+            }
+            if(wayCount > 0)
+            {
+                _taxiwayNodes.Add(nodes.Key,nodes.Value);
+                nodes.Value.direction = nodes.Value.directions[0].direction;
+            }
+            if (wayCount > 1)
+            {
+                CreateMarker(nodes.Value, wayCount);
+                bool isMiddle = false;
+                Vector3 newDirection = Vector3.zero;
+                foreach(var (direction, end) in nodes.Value.directions)
+                {
+                    if(end == EndType.None) isMiddle = true;
+
+                    if(isMiddle)
+                    {
+                        nodes.Value.direction = direction;
+                        break;
+                    }
+
+                    float difference = (newDirection.normalized - direction.normalized).magnitude;
+
+                    if(difference > 1)
+                    {
+                        newDirection -= direction;
+                    }
+                    else
+                    {
+                        newDirection += direction;
+                    }
+                }
+                if (!isMiddle)
+                {
+                    nodes.Value.direction = (newDirection / nodes.Value.directions.Count).normalized;
+                }
+            }
         }
         foreach (Way way in taxiways)
         {
@@ -163,5 +260,56 @@ public class WayRender : MonoBehaviour
         }
     }
 
-    private List<Vector3> taxiwayPosition = new List<Vector3>();
+    private void CreateMarker(Node node, float scale)
+    {
+        if (splineGen == null)
+        {
+            splineGen = new SplineGen(this.transform);
+        }
+        splineGen.Add(node);
+        GameObject marker = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        marker.transform.position = node.virtualPosition;
+        marker.transform.localScale *= scale;
+        marker.transform.SetParent(this.transform);
+        marker.AddComponent<NodeVisualizer>().SetNode(node);
+    }
+    SplineGen splineGen;
+}
+
+public class SplineGen
+{
+    private Transform _parent;
+    private SplineContainer container; 
+
+    public SplineGen(Transform parent)
+    {
+        _parent = parent;
+        GameObject splineHolder = new GameObject("Taxiway Spline");
+        splineHolder.transform.parent = parent;
+        container = splineHolder.AddComponent<SplineContainer>();
+    }
+
+    internal void Add(Node node)
+    {
+        BezierKnot newKnot = new()
+        {
+            Position = node.virtualPosition
+        };
+        //container.
+    }
+}
+
+public class NodeVisualizer : MonoBehaviour
+{
+    public List<string> tags = new List<string>();
+    [SerializeField] private Node node;
+
+    public void SetNode(Node node)
+    {
+        this.node = node;
+        foreach(var tag in node.tags)
+        {
+            tags.Add($"{tag.Key} : {tag.Value}");
+        }
+    }
 }

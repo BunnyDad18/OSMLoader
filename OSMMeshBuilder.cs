@@ -50,13 +50,13 @@ public class RunwayMeshBuilder
         mesh.RecalculateUVDistributionMetrics();
         return mesh;
     }
-    public static Mesh Get(Way way, OSMReader Reader, float width)
+    public static Mesh Get(Way way, Dictionary<long, Node> taxiwayNodes, float width)
     {
         var mesh = new Mesh();
         List<Vector3> orderedVerts = new List<Vector3>();
         List<int> tris = new();
         List<Vector2> uvs = new();
-        List<Vector3>[] verts = GetPostions(way, Reader, width);
+        List<Vector3>[] verts = GetPostions(way, taxiwayNodes, width);
         for (int i = 0; i < verts.Length; i++)
         {
             if (i >= verts.Length - 1) break;
@@ -123,25 +123,18 @@ public class RunwayMeshBuilder
         return verts;
     }
 
-    private static List<Vector3>[] GetPostions(Way way, OSMReader Reader, float width)
+    private static List<Vector3>[] GetPostions(Way way, Dictionary<long, Node> taxiwayNodes, float width)
     {
         List<Vector3>[] verts = new List<Vector3>[way.nodeIndexes.Count];
         for (int i = 0; i < way.nodeIndexes.Count; i++)
         {
-            Vector3 right = GetRight(i, way, Reader);
-            Node currentNode = Reader.nodes[way.nodeIndexes[i]];
-            foreach (KeyValuePair<long, Node> node in Reader.nodes)
-            {
-                if (node.Value.ways.Contains(way)) continue;
-                if (Vector3.Distance(node.Value.virtualPosition, currentNode.virtualPosition) < width/2)
-                {
-                    right /= 2;
-                    break;
-                }
-            }
+            Vector3 right = GetRight(i, way, taxiwayNodes);
+            Vector3 left = -right;
+            Node currentNode = taxiwayNodes[way.nodeIndexes[i]];
+
             verts[i] = new List<Vector3>
             {
-                currentNode.virtualPosition - (right * (width / 2)),
+                currentNode.virtualPosition + (left * (width / 2)),
                 currentNode.virtualPosition,
                 currentNode.virtualPosition + (right * (width / 2))
             };
@@ -149,18 +142,23 @@ public class RunwayMeshBuilder
         return verts;
     }
 
-    private static Vector3 GetRight(int i, Way way, OSMReader Reader)
+    private static Vector3 GetRight(int i, Way way, Dictionary<long, Node> taxiwayNodes)
     {
         Vector3 forward = Vector3.forward;
-        if (i < way.nodeIndexes.Count - 1)
+        float difference = 0;
+        if(i == 0 || (way.nodeIndexes.Count > 2 && i == 1))
         {
-            forward = Reader.nodes[way.nodeIndexes[i + 1]].virtualPosition - Reader.nodes[way.nodeIndexes[i]].virtualPosition;
+            difference = (taxiwayNodes[way.nodeIndexes[i]].direction - taxiwayNodes[way.nodeIndexes[i + 1]].direction).magnitude;
         }
-        if (i > 0)
+        else
         {
-            Vector3 backDirection = Reader.nodes[way.nodeIndexes[i]].virtualPosition - Reader.nodes[way.nodeIndexes[i - 1]].virtualPosition;
-            forward += backDirection;
+            difference = (taxiwayNodes[way.nodeIndexes[i - 1]].direction - taxiwayNodes[way.nodeIndexes[i]].direction).magnitude;
         }
+        Debug.Log($"{way.id} - {i} - {difference}");
+        forward = (Vector3)taxiwayNodes[way.nodeIndexes[i]].direction;
+        forward = (Vector3)taxiwayNodes[way.nodeIndexes[i]].direction * (difference > 1f ? -1 : 1);
+        //forward = (Vector3)taxiwayNodes[way.nodeIndexes[i]].direction * (i == 0 ? -1 : 1);
+
         return Vector3.Cross(forward.normalized, Vector3.up).normalized;
     }
 }

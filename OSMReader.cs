@@ -100,13 +100,26 @@ public class OSMReader : MonoBehaviour
         newWay.height *= 20;
     }
 
+    private static void PopulateTags(XElement element, Node newNode)
+    {
+        foreach (XElement tag in element.Descendants("tag"))
+        {
+            string key = tag.Attribute("k").Value.ToLower();
+            string value = tag.Attribute("v").Value.ToLower();
+            newNode.AddTag(key, value);
+        }
+    }
+
     private void PopulateNodes(XElement element, Way newWay)
     {
         foreach (XElement nodes in element.Descendants("nd"))
         {
             long nodeIndex = long.Parse(nodes.Attribute("ref").Value);
-            newWay.nodeIndexes.Add(nodeIndex);
-            this.nodes[nodeIndex].ways.Add(newWay);
+            if (!this.nodes[nodeIndex].ways.Contains(newWay))
+            {
+                newWay.nodeIndexes.Add(nodeIndex);
+                this.nodes[nodeIndex].ways.Add(newWay);
+            }
         }
     }
 

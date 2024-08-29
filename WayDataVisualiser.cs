@@ -9,7 +9,9 @@ public class WayDataVisualiser : MonoBehaviour
     public WayType type;
     public List<string> data = new List<string>();
 
-    public void SetData(Way way)
+    private OSMReader reader;
+
+    public void SetData(Way way, OSMReader reader)
     {
         Data = way;
         type = way.type;
@@ -17,6 +19,17 @@ public class WayDataVisualiser : MonoBehaviour
         foreach (KeyValuePair<string, string> tag in way.tags)
         {
             data.Add($"{tag.Key} - {tag.Value}");
+        }
+        this.reader = reader;
+    }
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+        if (Data == null) return;
+        foreach(var node in Data.nodeIndexes)
+        {
+            Gizmos.DrawLine(reader.nodes[node].virtualPosition, reader.nodes[node].virtualPosition + reader.nodes[node].direction);
         }
     }
 }
