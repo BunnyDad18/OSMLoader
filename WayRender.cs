@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Experimental.AI;
 using UnityEngine.Splines;
 using UnityEngine.UIElements;
 
@@ -93,7 +94,7 @@ public class WayRender : MonoBehaviour
         return newWayObject;
     }
 
-    private List<Vector3> GetPositions(Way way)
+    public List<Vector3> GetPositions(Way way)
     {
         List<Vector3> positions = new List<Vector3>();
         foreach (long childElement in way.nodeIndexes)
@@ -104,7 +105,25 @@ public class WayRender : MonoBehaviour
             newPosition.z *= -1;
             newPosition *= 100000;
             node.virtualPosition = newPosition;
+            node.knot = new BezierKnot(newPosition);
             positions.Add(newPosition);
+        }
+        return positions;
+    }
+
+    public List<Node> GetNodes(Way way)
+    {
+        List<Node> positions = new List<Node>();
+        foreach (long childElement in way.nodeIndexes)
+        {
+            Node node = Reader.nodes[childElement];
+            Vector3 newPosition = new Vector3(node.lat, 0, node.lon);
+            newPosition -= _offset;
+            newPosition.z *= -1;
+            newPosition *= 100000;
+            node.virtualPosition = newPosition;
+            node.knot = new BezierKnot(newPosition);
+            positions.Add(node);
         }
         return positions;
     }

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Xml.Linq;
 using UnityEngine;
+using UnityEngine.Splines;
 
 public class OSMReader : MonoBehaviour
 {
@@ -67,6 +68,7 @@ public class OSMReader : MonoBehaviour
                 lon = float.Parse(element.Attribute("lon").Value)
             };
             if (nodes.ContainsKey(newNode.id)) continue;
+            PopulateTags(element, newNode);
             nodes.Add(newNode.id, newNode);
             nodeCount++;
             _offset = new Vector3(newNode.lat, 0, newNode.lon);
@@ -156,6 +158,7 @@ public class OSMReader : MonoBehaviour
         if(way.type == WayType.Taxiway)
         {
             taxiways.Add(way);
+            AddToSpline(way);
             return true;
         }
         return false;
@@ -166,6 +169,8 @@ public class OSMReader : MonoBehaviour
         DestroyChildern();
         int offset = 0;
         if (ways.Count == 0) Import();
+
+        CreateSplineObject();
 
         for(int i = 0; i < lineCount; i++)
         {
@@ -179,7 +184,27 @@ public class OSMReader : MonoBehaviour
                 continue;
             }
         }
-        Render.RenderTxiways(taxiways);
+        //Render.RenderTxiways(taxiways);
         //MapParent.name = $"Main - {MapParent.childCount}";
+    }
+
+    private SplineContainer _splineContainer;
+
+    private void CreateSplineObject()
+    {
+        _splineContainer = new GameObject("Taxiway Spline").AddComponent<SplineContainer>();
+        _splineContainer.transform.parent = transform;
+        _splineContainer.gameObject.AddComponent<SplineMeshGen>();
+    }
+
+    private void AddToSpline(Way way)
+    {
+        if (_splineContainer == null) return;
+        List<Node> wayNodes = GetComponent<WayRender>().GetNodes(way);
+        Spline newSpline = _splineContainer.AddSpline();
+        foreach (Node node in wayNodes)
+        {
+            newSpline.Add(node.knot, TangentMode.AutoSmooth, 1);
+        }
     }
 }
