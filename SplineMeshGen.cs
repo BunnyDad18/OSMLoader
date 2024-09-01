@@ -4,6 +4,7 @@ using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Splines;
+using UnityEngine.UIElements;
 
 [RequireComponent(typeof(SplineContainer))]
 public class SplineMeshGen : MonoBehaviour
@@ -48,6 +49,8 @@ public class SplineMeshGen : MonoBehaviour
             DrawSplineEdgeGizmo(spline.left.edges, spline.left.intersects, spline.left.inside, Color.blue);
             //DrawSplineEdgeGizmo(spline.center.edges, spline.center.intersects, spline.center.inside, Color.white);
             DrawSplineEdgeGizmo(spline.right.edges, spline.right.intersects, spline.right.inside, Color.cyan);
+            DrawSplineEdgeGizmo(spline.end.edges, spline.end.intersects, spline.end.inside, Color.red);
+            DrawSplineEdgeGizmo(spline.start.edges, spline.start.intersects, spline.start.inside, Color.green);
         }
     }
 
@@ -79,6 +82,9 @@ public class SplineMesh
     public SplineEdge center = new();
     internal bool connectedStart;
 
+    public SplineEdge end = new();
+    public SplineEdge start = new();
+
     internal void CheckForIntersections(List<SplineMesh> _meshList)
     {
         bool inside = connectedStart;
@@ -91,6 +97,14 @@ public class SplineMesh
                 if (!intersect)
                 {
                     intersect = CheckEdge(mesh.right, left.edges[i], left.edges[i + 1], out position);
+                }
+                if (!intersect)
+                {
+                    intersect = CheckEdge(mesh.end, left.edges[i], left.edges[i + 1], out position);
+                }
+                if (!intersect)
+                {
+                    intersect = CheckEdge(mesh.start, left.edges[i], left.edges[i + 1], out position);
                 }
                 if (intersect)
                 {
@@ -112,6 +126,14 @@ public class SplineMesh
                 if (!intersect)
                 {
                     intersect = CheckEdge(mesh.right, right.edges[i], right.edges[i + 1], out position);
+                }
+                if (!intersect)
+                {
+                    intersect = CheckEdge(mesh.end, right.edges[i], right.edges[i + 1], out position);
+                }
+                if (!intersect)
+                {
+                    intersect = CheckEdge(mesh.start, right.edges[i], right.edges[i + 1], out position);
                 }
                 if (intersect)
                 {
@@ -140,13 +162,24 @@ public class SplineMesh
     internal void GenerateEdges(Spline spline, float width)
     {
         float length = spline.GetLength();
-        float detail = 200f;
-        for(float i = 0; i <= 1; i += 1f/detail)
+        float detail = length / 20;//100f;
+        float3 position = float3.zero;
+        float3 direction = float3.zero;
+        float3 up = float3.zero;
+
+        spline.Evaluate(0, out position, out direction, out up);
+        start.edges.Add(position + (math.normalize(math.cross(direction, up)) * width));
+        start.edges.Add(position - (math.normalize(math.cross(direction, up)) * width));
+
+        for (float i = 0; i <= 1; i += 1f/detail)
         {
-            spline.Evaluate(i, out float3 position, out float3 direction, out float3 up);
+            spline.Evaluate(i, out position, out direction, out up);
             center.edges.Add(position);
             right.edges.Add(position + (math.normalize(math.cross(direction, up)) * width));
             left.edges.Add(position - (math.normalize(math.cross(direction, up)) * width));
         }
+
+        end.edges.Add(position + (math.normalize(math.cross(direction, up)) * width));
+        end.edges.Add(position - (math.normalize(math.cross(direction, up)) * width));
     }
 }
