@@ -37,7 +37,52 @@ public class SplineMeshGen : MonoBehaviour
 
     private bool IsStartKnotIsolated(int index)
     {
-        return _splineContainer.KnotLinkCollection.GetKnotLinks(new SplineKnotIndex(index, 0)).Count <= 1;
+        IReadOnlyList<SplineKnotIndex> knotLinks = _splineContainer.KnotLinkCollection.GetKnotLinks(new SplineKnotIndex(index, 0));
+        List<SplineKnotIndex> endKnots = new List<SplineKnotIndex>();
+        foreach (SplineKnotIndex knot in knotLinks)
+        {
+            if (knot.Knot == 0 || _splineContainer.Splines[knot.Spline].Count == knot.Knot + 1)
+            {
+                endKnots.Add(knot);
+                /*if (endKnots.Count > 1)
+                {
+                    CreateMarker(_splineContainer.Splines[knot.Spline].Knots.ElementAt(knot.Knot).Position, 2);
+                }*/
+            }
+        }
+        Vector3 avarageRotation = Vector3.zero;
+        if (endKnots.Count > 1)
+        {
+            foreach (SplineKnotIndex knot in endKnots)
+            {
+                Spline testPline = _splineContainer.Splines[knot.Spline];
+                testPline.Evaluate(knot.Knot == 0 ? 0 : 1, out float3 position, out float3 tangent, out float3 up);
+                //_splineContainer.Splines[knot.Spline].SetTangentMode(knot.Knot, TangentMode.Mirrored);
+                avarageRotation += (Vector3)tangent;
+            }
+            avarageRotation /= endKnots.Count;
+            Debug.Log("=============");
+            foreach (SplineKnotIndex knot in endKnots)
+            {
+                Spline testPline = _splineContainer.Splines[knot.Spline];
+                testPline.Evaluate(knot.Knot == 0 ? 0 : 1, out float3 position, out float3 tangent, out float3 up);
+                BezierKnot newKnot = _splineContainer.Splines[knot.Spline].Knots.ElementAt(knot.Knot);
+                float difference = (avarageRotation.normalized - ((Vector3)tangent).normalized).magnitude;
+                Debug.Log($"average = {avarageRotation.normalized}. Knot = {((Vector3)tangent).normalized}. difference = {difference}");
+                newKnot.Rotation = Quaternion.LookRotation(avarageRotation.normalized * (difference < 1 ? 1 : -1), Vector3.up);
+                _splineContainer.Splines[knot.Spline].SetTangentMode(knot.Knot, TangentMode.Continuous);
+                _splineContainer.Splines[knot.Spline].SetKnot(knot.Knot, newKnot);
+            }
+        }
+        return knotLinks.Count <= 1;
+    }
+
+    private void CreateMarker(Vector3 position, float scale)
+    {
+        GameObject marker = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        marker.transform.position = position;
+        marker.transform.localScale *= scale;
+        marker.transform.SetParent(this.transform);
     }
 
     private void OnDrawGizmosSelected()
@@ -162,7 +207,7 @@ public class SplineMesh
     internal void GenerateEdges(Spline spline, float width)
     {
         float length = spline.GetLength();
-        float detail = length / 20;//100f;
+        float detail = length / 5;
         float3 position = float3.zero;
         float3 direction = float3.zero;
         float3 up = float3.zero;
@@ -178,6 +223,11 @@ public class SplineMesh
             right.edges.Add(position + (math.normalize(math.cross(direction, up)) * width));
             left.edges.Add(position - (math.normalize(math.cross(direction, up)) * width));
         }
+
+        spline.Evaluate(1, out position, out direction, out up);
+        center.edges.Add(position);
+        right.edges.Add(position + (math.normalize(math.cross(direction, up)) * width));
+        left.edges.Add(position - (math.normalize(math.cross(direction, up)) * width));
 
         end.edges.Add(position + (math.normalize(math.cross(direction, up)) * width));
         end.edges.Add(position - (math.normalize(math.cross(direction, up)) * width));

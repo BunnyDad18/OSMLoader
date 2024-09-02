@@ -105,7 +105,11 @@ public class WayRender : MonoBehaviour
             newPosition.z *= -1;
             newPosition *= 100000;
             node.virtualPosition = newPosition;
-            node.knot = new BezierKnot(newPosition);
+            if (!node.knotSet)
+            {
+                node.knot = new BezierKnot(newPosition);
+                node.knotSet = true;
+            }
             positions.Add(newPosition);
         }
         return positions;
@@ -122,7 +126,11 @@ public class WayRender : MonoBehaviour
             newPosition.z *= -1;
             newPosition *= 100000;
             node.virtualPosition = newPosition;
-            node.knot = new BezierKnot(newPosition);
+            if(!node.knotSet)
+            {
+                node.knot = new BezierKnot(newPosition);
+                node.knotSet = true;
+            }
             positions.Add(node);
         }
         return positions;

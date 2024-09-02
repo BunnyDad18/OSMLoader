@@ -22,6 +22,7 @@ public class Node
     public List<Way> ways = new List<Way>();
 
     public BezierKnot knot;
+    public bool knotSet = false;
 
     public Dictionary<string, string> tags = new Dictionary<string, string>();
 
