@@ -1,11 +1,8 @@
-using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Splines;
-using UnityEngine.UIElements;
 
 [RequireComponent(typeof(SplineContainer))]
 public class SplineMeshGen : MonoBehaviour
@@ -16,25 +13,62 @@ public class SplineMeshGen : MonoBehaviour
 
     private SplineContainer _splineContainer;
 
-    private List<SplineMesh> _meshList = new();
+    private List<SplineMeshData> _meshList = new();
 
     public void Setup()
     {
+        DestroyChildern();
         _meshList.Clear();
         _splineContainer = GetComponent<SplineContainer>();
         for (int i = 0; i < _splineContainer.Splines.Count; i++)
         {
             Spline spline = _splineContainer.Splines[i];
-            SplineMesh newMesh = new SplineMesh();
+            SplineMeshData newMesh = new SplineMeshData();
             newMesh.connectedStart = !IsStartKnotIsolated(i);
             newMesh.GenerateEdges(spline, 11, detailLevel);
             _meshList.Add(newMesh);
         }
-        foreach(SplineMesh splineMesh in _meshList)
+        foreach (SplineMeshData splineMesh in _meshList)
         {
             splineMesh.CheckForIntersections(_meshList);
         }
+        foreach (SplineMeshData splineMeshData in _meshList)
+        {
+            CreateMesh(splineMeshData);
+        }
         Debug.Log("Finsihed Setup");
+    }
+
+    private void CreateMesh(SplineMeshData splineMesh)
+    {
+        List<Vector3> verts = new();
+        List<int> tris = new();
+        List<Vector2> uvs = new();
+
+        int triCount = 0;
+        for(int i = 0; i < splineMesh.center.edges.Count - 1; i++)
+        {
+            verts.Add(splineMesh.center.edges[i]);
+            verts.Add(splineMesh.right.edges[i]);
+            verts.Add(splineMesh.center.edges[i + 1]);
+            verts.Add(splineMesh.center.edges[i + 1]);
+            verts.Add(splineMesh.right.edges[i]);
+            verts.Add(splineMesh.right.edges[i + 1]);
+            tris.Add(triCount++);
+            tris.Add(triCount++);
+            tris.Add(triCount++);
+            tris.Add(triCount++);
+            tris.Add(triCount++);
+            tris.Add(triCount++);
+        }
+
+        Mesh mesh = new();
+        mesh.SetVertices(verts);
+        mesh.SetTriangles(tris, 0);
+        //mesh.SetUVs(0, uvs);
+        mesh.RecalculateNormals();
+
+        GetNewMeshFilter().mesh = mesh;
     }
 
     private bool IsStartKnotIsolated(int index)
@@ -72,25 +106,17 @@ public class SplineMeshGen : MonoBehaviour
         return knotLinks.Count <= 1;
     }
 
-    private void CreateMarker(Vector3 position, float scale)
-    {
-        GameObject marker = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        marker.transform.position = position;
-        marker.transform.localScale *= scale;
-        marker.transform.SetParent(this.transform);
-    }
-
     private void OnDrawGizmosSelected()
     {
         for (int i = 0; i < _meshList.Count; i++)
         {
             if (i > splineGizmoCount) return;
-            SplineMesh spline = _meshList[i];
+            SplineMeshData spline = _meshList[i];
             DrawSplineEdgeGizmo(spline.left.edges, spline.left.intersects, spline.left.inside, Color.blue);
             //DrawSplineEdgeGizmo(spline.center.edges, spline.center.intersects, spline.center.inside, Color.white);
             DrawSplineEdgeGizmo(spline.right.edges, spline.right.intersects, spline.right.inside, Color.cyan);
-            DrawSplineEdgeGizmo(spline.end.edges, spline.end.intersects, spline.end.inside, Color.red);
-            DrawSplineEdgeGizmo(spline.start.edges, spline.start.intersects, spline.start.inside, Color.green);
+            //DrawSplineEdgeGizmo(spline.end.edges, spline.end.intersects, spline.end.inside, Color.red);
+            //(spline.start.edges, spline.start.intersects, spline.start.inside, Color.green);
         }
     }
 
@@ -105,6 +131,22 @@ public class SplineMeshGen : MonoBehaviour
             Gizmos.DrawLine(edges[i], edges[i + 1]);
         }
     }
+
+    private void DestroyChildern()
+    {
+        for (int i = transform.childCount - 1; i >= 0; i--)
+        {
+            DestroyImmediate(transform.GetChild(i).gameObject);
+        }
+    }
+
+    private MeshFilter GetNewMeshFilter(string name = "Spline Mesh")
+    {
+        GameObject newSplineMesh = new(name);
+        newSplineMesh.transform.SetParent(transform);
+        newSplineMesh.AddComponent<MeshRenderer>();
+        return newSplineMesh.AddComponent<MeshFilter>();
+    }
 }
 
 public class SplineEdge
@@ -115,7 +157,7 @@ public class SplineEdge
     public List<Vector3> intersectPoints = new List<Vector3>();
 }
 
-public class SplineMesh
+public class SplineMeshData
 {
     public SplineEdge left = new();
     public SplineEdge right = new();
@@ -125,18 +167,18 @@ public class SplineMesh
     public SplineEdge end = new();
     public SplineEdge start = new();
 
-    internal void CheckForIntersections(List<SplineMesh> _meshList)
+    internal void CheckForIntersections(List<SplineMeshData> _meshList)
     {
         bool inside = connectedStart;
         CheckEdgeForIntersections(_meshList, left, inside);
         CheckEdgeForIntersections(_meshList, right, inside);
     }
 
-    private void CheckEdgeForIntersections(List<SplineMesh> _meshList, SplineEdge edge, bool inside)
+    private void CheckEdgeForIntersections(List<SplineMeshData> _meshList, SplineEdge edge, bool inside)
     {
         for (int i = 0; i < edge.edges.Count - 1; i++)
         {
-            foreach (SplineMesh mesh in _meshList)
+            foreach (SplineMeshData mesh in _meshList)
             {
                 if (mesh == this) continue;
                 if (CheckEdge(mesh.left, edge.edges[i], edge.edges[i + 1], out Vector3 position) ||
