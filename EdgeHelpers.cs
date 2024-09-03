@@ -24,14 +24,15 @@ public static class EdgeHelpers
 
     private static bool OnLine(Vector3 vectorA, Vector3 vectorB, float x, float y)
     {
+        float offset = .001f;
         float smallX = vectorA.x < vectorB.x ? vectorA.x : vectorB.x;
-        if (x < smallX) return false;
+        if (x + offset < smallX) return false;
         float bigX = vectorA.x > vectorB.x ? vectorA.x : vectorB.x;
-        if (x > bigX) return false;
+        if (x - offset > bigX) return false;
         float smallY = vectorA.z < vectorB.z ? vectorA.z : vectorB.z;
-        if (y < smallY) return false;
+        if (y + offset < smallY) return false;
         float bigY = vectorA.z > vectorB.z ? vectorA.z : vectorB.z;
-        if (y > bigY) return false;
+        if (y - offset > bigY) return false;
         return true;
     }
 }

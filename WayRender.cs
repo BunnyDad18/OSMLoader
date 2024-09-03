@@ -118,19 +118,17 @@ public class WayRender : MonoBehaviour
     public List<Node> GetNodes(Way way)
     {
         List<Node> positions = new List<Node>();
-        foreach (long childElement in way.nodeIndexes)
+        for (int i = 0; i < way.nodeIndexes.Count; i++)
         {
+            long childElement = way.nodeIndexes[i];
             Node node = Reader.nodes[childElement];
             Vector3 newPosition = new Vector3(node.lat, 0, node.lon);
             newPosition -= _offset;
             newPosition.z *= -1;
             newPosition *= 100000;
             node.virtualPosition = newPosition;
-            if(!node.knotSet)
-            {
-                node.knot = new BezierKnot(newPosition);
-                node.knotSet = true;
-            }
+            node.knot = new BezierKnot(newPosition);
+            node.knotSet = true;
             positions.Add(node);
         }
         return positions;

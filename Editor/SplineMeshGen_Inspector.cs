@@ -19,11 +19,19 @@ public class SplineMeshGen_Inspector : Editor
         splineGizmoCount.value = splineMeshGen.splineGizmoCount;
         splineGizmoCount.RegisterValueChangedCallback(value => { splineMeshGen.splineGizmoCount = value.newValue; });
 
+        Slider detailLevel = new Slider($"Detail - {splineMeshGen.detailLevel}", 0.1f, 2f);
+        detailLevel.value = splineMeshGen.detailLevel;
+        detailLevel.RegisterValueChangedCallback(value => { 
+            splineMeshGen.detailLevel = value.newValue;
+            detailLevel.label = $"Detail - {value.newValue}";
+        });
+
         Button setupButton = new Button() { text = "Setup" };
         setupButton.clicked += splineMeshGen.Setup;
 
         inspector.Add(showInsideGizmo);
         inspector.Add(splineGizmoCount);
+        inspector.Add(detailLevel);
         inspector.Add(setupButton);
 
         return inspector;

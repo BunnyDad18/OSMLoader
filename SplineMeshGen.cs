@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
@@ -11,6 +12,7 @@ public class SplineMeshGen : MonoBehaviour
 {
     public bool showInsideGizmos = true;
     public int splineGizmoCount = 5;
+    public float detailLevel = 1.0f;
 
     private SplineContainer _splineContainer;
 
@@ -25,7 +27,7 @@ public class SplineMeshGen : MonoBehaviour
             Spline spline = _splineContainer.Splines[i];
             SplineMesh newMesh = new SplineMesh();
             newMesh.connectedStart = !IsStartKnotIsolated(i);
-            newMesh.GenerateEdges(spline, 11);
+            newMesh.GenerateEdges(spline, 11, detailLevel);
             _meshList.Add(newMesh);
         }
         foreach(SplineMesh splineMesh in _meshList)
@@ -44,10 +46,6 @@ public class SplineMeshGen : MonoBehaviour
             if (knot.Knot == 0 || _splineContainer.Splines[knot.Spline].Count == knot.Knot + 1)
             {
                 endKnots.Add(knot);
-                /*if (endKnots.Count > 1)
-                {
-                    CreateMarker(_splineContainer.Splines[knot.Spline].Knots.ElementAt(knot.Knot).Position, 2);
-                }*/
             }
         }
         Vector3 avarageRotation = Vector3.zero;
@@ -57,18 +55,15 @@ public class SplineMeshGen : MonoBehaviour
             {
                 Spline testPline = _splineContainer.Splines[knot.Spline];
                 testPline.Evaluate(knot.Knot == 0 ? 0 : 1, out float3 position, out float3 tangent, out float3 up);
-                //_splineContainer.Splines[knot.Spline].SetTangentMode(knot.Knot, TangentMode.Mirrored);
                 avarageRotation += (Vector3)tangent;
             }
             avarageRotation /= endKnots.Count;
-            Debug.Log("=============");
             foreach (SplineKnotIndex knot in endKnots)
             {
                 Spline testPline = _splineContainer.Splines[knot.Spline];
                 testPline.Evaluate(knot.Knot == 0 ? 0 : 1, out float3 position, out float3 tangent, out float3 up);
                 BezierKnot newKnot = _splineContainer.Splines[knot.Spline].Knots.ElementAt(knot.Knot);
                 float difference = (avarageRotation.normalized - ((Vector3)tangent).normalized).magnitude;
-                Debug.Log($"average = {avarageRotation.normalized}. Knot = {((Vector3)tangent).normalized}. difference = {difference}");
                 newKnot.Rotation = Quaternion.LookRotation(avarageRotation.normalized * (difference < 1 ? 1 : -1), Vector3.up);
                 _splineContainer.Splines[knot.Spline].SetTangentMode(knot.Knot, TangentMode.Continuous);
                 _splineContainer.Splines[knot.Spline].SetKnot(knot.Knot, newKnot);
@@ -133,61 +128,28 @@ public class SplineMesh
     internal void CheckForIntersections(List<SplineMesh> _meshList)
     {
         bool inside = connectedStart;
-        for (int i = 0; i < left.edges.Count - 1; i++)
+        CheckEdgeForIntersections(_meshList, left, inside);
+        CheckEdgeForIntersections(_meshList, right, inside);
+    }
+
+    private void CheckEdgeForIntersections(List<SplineMesh> _meshList, SplineEdge edge, bool inside)
+    {
+        for (int i = 0; i < edge.edges.Count - 1; i++)
         {
             foreach (SplineMesh mesh in _meshList)
             {
                 if (mesh == this) continue;
-                bool intersect = CheckEdge(mesh.left, left.edges[i], left.edges[i + 1], out Vector3 position);
-                if (!intersect)
-                {
-                    intersect = CheckEdge(mesh.right, left.edges[i], left.edges[i + 1], out position);
-                }
-                if (!intersect)
-                {
-                    intersect = CheckEdge(mesh.end, left.edges[i], left.edges[i + 1], out position);
-                }
-                if (!intersect)
-                {
-                    intersect = CheckEdge(mesh.start, left.edges[i], left.edges[i + 1], out position);
-                }
-                if (intersect)
+                if (CheckEdge(mesh.left, edge.edges[i], edge.edges[i + 1], out Vector3 position) ||
+                    CheckEdge(mesh.right, edge.edges[i], edge.edges[i + 1], out position) ||
+                    CheckEdge(mesh.end, edge.edges[i], edge.edges[i + 1], out position) ||
+                    CheckEdge(mesh.start, edge.edges[i], edge.edges[i + 1], out position))
                 {
                     inside = !inside;
-                    left.intersects.Add(i);
-                    left.intersectPoints.Add(position);
-                    left.inside.Add(i);
+                    edge.intersects.Add(i);
+                    edge.intersectPoints.Add(position);
+                    edge.inside.Add(i);
                 }
-                else if (inside) left.inside.Add(i);
-            }
-        }
-        inside = connectedStart;
-        for (int i = 0; i < right.edges.Count - 1; i++)
-        {
-            foreach (SplineMesh mesh in _meshList)
-            {
-                if (mesh == this) continue;
-                bool intersect = CheckEdge(mesh.left, right.edges[i], right.edges[i + 1], out Vector3 position);
-                if (!intersect)
-                {
-                    intersect = CheckEdge(mesh.right, right.edges[i], right.edges[i + 1], out position);
-                }
-                if (!intersect)
-                {
-                    intersect = CheckEdge(mesh.end, right.edges[i], right.edges[i + 1], out position);
-                }
-                if (!intersect)
-                {
-                    intersect = CheckEdge(mesh.start, right.edges[i], right.edges[i + 1], out position);
-                }
-                if (intersect)
-                {
-                    inside = !inside;
-                    right.intersects.Add(i);
-                    right.intersectPoints.Add(position);
-                    right.inside.Add(i);
-                }
-                else if (inside) right.inside.Add(i);
+                else if (inside) edge.inside.Add(i);
             }
         }
     }
@@ -204,15 +166,12 @@ public class SplineMesh
     }
 
 
-    internal void GenerateEdges(Spline spline, float width)
+    internal void GenerateEdges(Spline spline, float width, float detailLevel)
     {
         float length = spline.GetLength();
-        float detail = length / 5;
-        float3 position = float3.zero;
-        float3 direction = float3.zero;
-        float3 up = float3.zero;
+        float detail = length * detailLevel;
 
-        spline.Evaluate(0, out position, out direction, out up);
+        spline.Evaluate(0, out float3 position, out float3 direction, out float3 up);
         start.edges.Add(position + (math.normalize(math.cross(direction, up)) * width));
         start.edges.Add(position - (math.normalize(math.cross(direction, up)) * width));
 

@@ -184,6 +184,7 @@ public class OSMReader : MonoBehaviour
                 continue;
             }
         }
+        LinkSplineKnots();
         //Render.RenderTxiways(taxiways);
         //MapParent.name = $"Main - {MapParent.childCount}";
     }
@@ -202,9 +203,23 @@ public class OSMReader : MonoBehaviour
         if (_splineContainer == null) return;
         List<Node> wayNodes = GetComponent<WayRender>().GetNodes(way);
         Spline newSpline = _splineContainer.AddSpline();
-        foreach (Node node in wayNodes)
+        int splineIndex = _splineContainer.Splines.Count - 1;
+        for (int i = 0; i < wayNodes.Count; i++)
         {
-            newSpline.Add(node.knot, TangentMode.AutoSmooth, 1);
+            wayNodes[i].knotConnections.Add(new SplineKnotIndex(splineIndex, i));
+            newSpline.Add(wayNodes[i].knot, TangentMode.AutoSmooth, 1);
+        }
+    }
+
+    private void LinkSplineKnots()
+    {
+        foreach(KeyValuePair<long, Node> node in nodes)
+        {
+            if (node.Value.knotConnections.Count <= 1) continue;
+            for(int i = 0; i <  node.Value.knotConnections.Count - 1; i++)
+            {
+                _splineContainer.LinkKnots(node.Value.knotConnections[i], node.Value.knotConnections[i + 1]);
+            }
         }
     }
 }

@@ -23,6 +23,7 @@ public class Node
 
     public BezierKnot knot;
     public bool knotSet = false;
+    public List<SplineKnotIndex> knotConnections = new List<SplineKnotIndex>();
 
     public Dictionary<string, string> tags = new Dictionary<string, string>();
 
