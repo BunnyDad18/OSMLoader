@@ -1,4 +1,5 @@
 ﻿using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -28,6 +29,10 @@ public class SplineMeshGen_Inspector : Editor
 
         Button setupButton = new Button() { text = "Setup" };
         setupButton.clicked += splineMeshGen.Setup;
+
+        PropertyField taxiwayMaterial = new PropertyField();
+        taxiwayMaterial.bindingPath = "taxiwayMaterial";
+        inspector.Add(taxiwayMaterial);
 
         inspector.Add(showInsideGizmo);
         inspector.Add(splineGizmoCount);

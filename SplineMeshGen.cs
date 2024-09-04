@@ -7,6 +7,7 @@ using UnityEngine.Splines;
 [RequireComponent(typeof(SplineContainer))]
 public class SplineMeshGen : MonoBehaviour
 {
+    public Material taxiwayMaterial;
     public bool showInsideGizmos = true;
     public int splineGizmoCount = 5;
     public float detailLevel = 1.0f;
@@ -48,12 +49,24 @@ public class SplineMeshGen : MonoBehaviour
         int triCount = 0;
         for(int i = 0; i < splineMesh.center.edges.Count - 1; i++)
         {
+            int rightIndex = i;
+            while (splineMesh.right.inside.Contains(rightIndex))
+            {
+                if (rightIndex > splineMesh.center.edges.Count - 3) break;
+                rightIndex++;
+            }
             verts.Add(splineMesh.center.edges[i]);
-            verts.Add(splineMesh.right.edges[i]);
+            uvs.Add(new Vector2(.5f, 0));
+            verts.Add(splineMesh.right.edges[rightIndex]);
+            uvs.Add(new Vector2(1f, 0));
             verts.Add(splineMesh.center.edges[i + 1]);
+            uvs.Add(new Vector2(.5f, 1));
             verts.Add(splineMesh.center.edges[i + 1]);
-            verts.Add(splineMesh.right.edges[i]);
-            verts.Add(splineMesh.right.edges[i + 1]);
+            uvs.Add(new Vector2(.5f, 1));
+            verts.Add(splineMesh.right.edges[rightIndex]);
+            uvs.Add(new Vector2(1, 0));
+            verts.Add(splineMesh.right.edges[rightIndex + 1]);
+            uvs.Add(new Vector2(1, 1));
             tris.Add(triCount++);
             tris.Add(triCount++);
             tris.Add(triCount++);
@@ -65,7 +78,7 @@ public class SplineMeshGen : MonoBehaviour
         Mesh mesh = new();
         mesh.SetVertices(verts);
         mesh.SetTriangles(tris, 0);
-        //mesh.SetUVs(0, uvs);
+        mesh.SetUVs(0, uvs);
         mesh.RecalculateNormals();
 
         GetNewMeshFilter().mesh = mesh;
@@ -115,8 +128,8 @@ public class SplineMeshGen : MonoBehaviour
             DrawSplineEdgeGizmo(spline.left.edges, spline.left.intersects, spline.left.inside, Color.blue);
             //DrawSplineEdgeGizmo(spline.center.edges, spline.center.intersects, spline.center.inside, Color.white);
             DrawSplineEdgeGizmo(spline.right.edges, spline.right.intersects, spline.right.inside, Color.cyan);
-            //DrawSplineEdgeGizmo(spline.end.edges, spline.end.intersects, spline.end.inside, Color.red);
-            //(spline.start.edges, spline.start.intersects, spline.start.inside, Color.green);
+            DrawSplineEdgeGizmo(spline.end.edges, spline.end.intersects, spline.end.inside, Color.red);
+            DrawSplineEdgeGizmo(spline.start.edges, spline.start.intersects, spline.start.inside, Color.green);
         }
     }
 
@@ -144,7 +157,8 @@ public class SplineMeshGen : MonoBehaviour
     {
         GameObject newSplineMesh = new(name);
         newSplineMesh.transform.SetParent(transform);
-        newSplineMesh.AddComponent<MeshRenderer>();
+        MeshRenderer renderer = newSplineMesh.AddComponent<MeshRenderer>();
+        renderer.SetMaterials(new List<Material>() { taxiwayMaterial });
         return newSplineMesh.AddComponent<MeshFilter>();
     }
 }
