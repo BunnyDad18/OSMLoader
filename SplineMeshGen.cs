@@ -48,6 +48,7 @@ public class SplineMeshGen : MonoBehaviour
 
         int triCount = 0;
         int rightIndex = 0;
+        int leftIndex = 0;
         for (int i = 0; i < splineMesh.center.edges.Count - 1; i++)
         {
             if(i == 0)
@@ -57,10 +58,9 @@ public class SplineMeshGen : MonoBehaviour
                     if (rightIndex > splineMesh.right.edges.Count - 3) break;
                     rightIndex++;
                 }
-                //rightIndex--;
-                AddVert(i, true, true);
-                AddVert(rightIndex - 1, false, true);
-                AddVert(rightIndex - 1, false, false);
+                AddVertRight(i, true, true);
+                AddVertRight(rightIndex - 1, false, true);
+                AddVertRight(rightIndex - 1, false, false);
             }
             if(!splineMesh.right.inside.Contains(i) && i < splineMesh.right.edges.Count - 2)
             {
@@ -73,27 +73,67 @@ public class SplineMeshGen : MonoBehaviour
                     if (rightIndex > splineMesh.right.edges.Count - 3) break;
                     rightIndex++;
                 }
-                AddVert(i, true, true);
-                AddVert(rightIndex - 1, false, true);
-                AddVert(rightIndex - 1, false, false);
+                AddVertRight(i, true, true);
+                AddVertRight(rightIndex - 1, false, true);
+                AddVertRight(rightIndex - 1, false, false);
             }
 
 
-            AddVert(i, true, true);
-            AddVert(rightIndex, false, true);
-            AddVert(i, true, false);
+            AddVertRight(i, true, true);
+            AddVertRight(rightIndex, false, true);
+            AddVertRight(i, true, false);
             if (!splineMesh.right.inside.Contains(i + 1))
             {
-                AddVert(i, true, false);
-                AddVert(rightIndex, false, true);
-                AddVert(rightIndex, false, false);
+                AddVertRight(i, true, false);
+                AddVertRight(rightIndex, false, true);
+                AddVertRight(rightIndex, false, false);
+            }
+
+
+
+            if (i == 0)
+            {
+                while (splineMesh.left.inside.Contains(leftIndex))
+                {
+                    if (leftIndex > splineMesh.left.edges.Count - 3) break;
+                    leftIndex++;
+                }
+                AddVertLeft(i, true, true);
+                AddVertLeft(leftIndex - 1, false, false);
+                AddVertLeft(leftIndex - 1, false, true);
+            }
+            if (!splineMesh.left.inside.Contains(i) && i < splineMesh.left.edges.Count - 2)
+            {
+                leftIndex = i + 1;
+            }
+            else if (splineMesh.center.intersects.Contains(i))
+            {
+                while (splineMesh.left.inside.Contains(leftIndex))
+                {
+                    if (leftIndex > splineMesh.left.edges.Count - 3) break;
+                    leftIndex++;
+                }
+                AddVertLeft(i, true, true);
+                AddVertLeft(leftIndex - 1, false, false);
+                AddVertLeft(leftIndex - 1, false, true);
+            }
+
+
+            AddVertLeft(i, true, true);
+            AddVertLeft(i, true, false);
+            AddVertLeft(leftIndex, false, true);
+            if (!splineMesh.left.inside.Contains(i + 1))
+            {
+                AddVertLeft(i, true, false);
+                AddVertLeft(leftIndex, false, false);
+                AddVertLeft(leftIndex, false, true);
             }
         }
 
-        void AddVert(int index, bool inside, bool first, int intersectIndex = -1)
+        void AddVertRight(int index, bool inside, bool first, int intersectIndex = -1)
         {
             SplineEdge edge = inside ? splineMesh.center : splineMesh.right;
-            if(intersectIndex != -1 && intersectIndex < edge.intersectPoints.Count - 1)
+            if (intersectIndex != -1 && intersectIndex < edge.intersectPoints.Count - 1)
             {
                 Debug.Log(edge.intersectPoints[intersectIndex]);
                 verts.Add(edge.intersectPoints[intersectIndex]);
@@ -104,6 +144,23 @@ public class SplineMeshGen : MonoBehaviour
                 verts.Add(edge.edges[first ? index : index + 1]);
             }
             uvs.Add(new Vector2(inside ? .5f : 1, first ? 0 : 1));
+            tris.Add(triCount++);
+        }
+
+        void AddVertLeft(int index, bool inside, bool first, int intersectIndex = -1)
+        {
+            SplineEdge edge = inside ? splineMesh.center : splineMesh.left;
+            if (intersectIndex != -1 && intersectIndex < edge.intersectPoints.Count - 1)
+            {
+                Debug.Log(edge.intersectPoints[intersectIndex]);
+                verts.Add(edge.intersectPoints[intersectIndex]);
+                CreateMarker(edge.intersectPoints[intersectIndex]);
+            }
+            else
+            {
+                verts.Add(edge.edges[first ? index : index + 1]);
+            }
+            uvs.Add(new Vector2(inside ? .5f : 0, first ? 0 : 1));
             tris.Add(triCount++);
         }
 
@@ -165,7 +222,7 @@ public class SplineMeshGen : MonoBehaviour
             if (i > splineGizmoCount) return;
             SplineMeshData spline = _meshList[i];
             DrawSplineEdgeGizmo(spline.left.edges, spline.left.intersects, spline.left.inside, Color.blue);
-            DrawSplineEdgeGizmo(spline.center.edges, spline.center.intersects, spline.center.inside, Color.white);
+            //DrawSplineEdgeGizmo(spline.center.edges, spline.center.intersects, spline.center.inside, Color.white);
             DrawSplineEdgeGizmo(spline.right.edges, spline.right.intersects, spline.right.inside, Color.cyan);
             DrawSplineEdgeGizmo(spline.end.edges, spline.end.intersects, spline.end.inside, Color.red);
             DrawSplineEdgeGizmo(spline.start.edges, spline.start.intersects, spline.start.inside, Color.green);
