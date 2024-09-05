@@ -47,31 +47,63 @@ public class SplineMeshGen : MonoBehaviour
         List<Vector2> uvs = new();
 
         int triCount = 0;
-        for(int i = 0; i < splineMesh.center.edges.Count - 1; i++)
+        int rightIndex = 0;
+        for (int i = 0; i < splineMesh.center.edges.Count - 1; i++)
         {
-            int rightIndex = i;
-            while (splineMesh.right.inside.Contains(rightIndex))
+            if(i == 0)
             {
-                if (rightIndex > splineMesh.center.edges.Count - 3) break;
-                rightIndex++;
+                while (splineMesh.right.inside.Contains(rightIndex))
+                {
+                    if (rightIndex > splineMesh.right.edges.Count - 3) break;
+                    rightIndex++;
+                }
+                //rightIndex--;
+                AddVert(i, true, true);
+                AddVert(rightIndex - 1, false, true);
+                AddVert(rightIndex - 1, false, false);
             }
-            verts.Add(splineMesh.center.edges[i]);
-            uvs.Add(new Vector2(.5f, 0));
-            verts.Add(splineMesh.right.edges[rightIndex]);
-            uvs.Add(new Vector2(1f, 0));
-            verts.Add(splineMesh.center.edges[i + 1]);
-            uvs.Add(new Vector2(.5f, 1));
-            verts.Add(splineMesh.center.edges[i + 1]);
-            uvs.Add(new Vector2(.5f, 1));
-            verts.Add(splineMesh.right.edges[rightIndex]);
-            uvs.Add(new Vector2(1, 0));
-            verts.Add(splineMesh.right.edges[rightIndex + 1]);
-            uvs.Add(new Vector2(1, 1));
-            tris.Add(triCount++);
-            tris.Add(triCount++);
-            tris.Add(triCount++);
-            tris.Add(triCount++);
-            tris.Add(triCount++);
+            if(!splineMesh.right.inside.Contains(i) && i < splineMesh.right.edges.Count - 2)
+            {
+                rightIndex = i + 1;
+            }
+            else if (splineMesh.center.intersects.Contains(i))
+            {
+                while (splineMesh.right.inside.Contains(rightIndex))
+                {
+                    if (rightIndex > splineMesh.right.edges.Count - 3) break;
+                    rightIndex++;
+                }
+                AddVert(i, true, true);
+                AddVert(rightIndex - 1, false, true);
+                AddVert(rightIndex - 1, false, false);
+            }
+
+
+            AddVert(i, true, true);
+            AddVert(rightIndex, false, true);
+            AddVert(i, true, false);
+            if (!splineMesh.right.inside.Contains(i + 1))
+            {
+                AddVert(i, true, false);
+                AddVert(rightIndex, false, true);
+                AddVert(rightIndex, false, false);
+            }
+        }
+
+        void AddVert(int index, bool inside, bool first, int intersectIndex = -1)
+        {
+            SplineEdge edge = inside ? splineMesh.center : splineMesh.right;
+            if(intersectIndex != -1 && intersectIndex < edge.intersectPoints.Count - 1)
+            {
+                Debug.Log(edge.intersectPoints[intersectIndex]);
+                verts.Add(edge.intersectPoints[intersectIndex]);
+                CreateMarker(edge.intersectPoints[intersectIndex]);
+            }
+            else
+            {
+                verts.Add(edge.edges[first ? index : index + 1]);
+            }
+            uvs.Add(new Vector2(inside ? .5f : 1, first ? 0 : 1));
             tris.Add(triCount++);
         }
 
@@ -82,6 +114,13 @@ public class SplineMeshGen : MonoBehaviour
         mesh.RecalculateNormals();
 
         GetNewMeshFilter().mesh = mesh;
+    }
+
+    private void CreateMarker(Vector3 position)
+    {
+        GameObject marker = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        marker.transform.SetParent(transform, false);
+        marker.transform.position = position;
     }
 
     private bool IsStartKnotIsolated(int index)
@@ -126,7 +165,7 @@ public class SplineMeshGen : MonoBehaviour
             if (i > splineGizmoCount) return;
             SplineMeshData spline = _meshList[i];
             DrawSplineEdgeGizmo(spline.left.edges, spline.left.intersects, spline.left.inside, Color.blue);
-            //DrawSplineEdgeGizmo(spline.center.edges, spline.center.intersects, spline.center.inside, Color.white);
+            DrawSplineEdgeGizmo(spline.center.edges, spline.center.intersects, spline.center.inside, Color.white);
             DrawSplineEdgeGizmo(spline.right.edges, spline.right.intersects, spline.right.inside, Color.cyan);
             DrawSplineEdgeGizmo(spline.end.edges, spline.end.intersects, spline.end.inside, Color.red);
             DrawSplineEdgeGizmo(spline.start.edges, spline.start.intersects, spline.start.inside, Color.green);
@@ -186,6 +225,28 @@ public class SplineMeshData
         bool inside = connectedStart;
         CheckEdgeForIntersections(_meshList, left, inside);
         CheckEdgeForIntersections(_meshList, right, inside);
+        CheckCenterForIntersections(_meshList, center, inside);
+    }
+
+    private void CheckCenterForIntersections(List<SplineMeshData> _meshList, SplineEdge edge, bool inside)
+    {
+        for (int i = 0; i < edge.edges.Count - 1; i++)
+        {
+            foreach (SplineMeshData mesh in _meshList)
+            {
+                if (mesh == this) continue;
+                if (CheckEdge(mesh.center, edge.edges[i], edge.edges[i + 1], out Vector3 position) ||
+                    CheckEdge(mesh.end, edge.edges[i], edge.edges[i + 1], out position) ||
+                    CheckEdge(mesh.start, edge.edges[i], edge.edges[i + 1], out position))
+                {
+                    inside = !inside;
+                    edge.intersects.Add(i);
+                    edge.intersectPoints.Add(position);
+                    edge.edges[i] = position;
+                }
+                else if (inside) edge.inside.Add(i);
+            }
+        }
     }
 
     private void CheckEdgeForIntersections(List<SplineMeshData> _meshList, SplineEdge edge, bool inside)
@@ -204,18 +265,19 @@ public class SplineMeshData
                     edge.intersects.Add(i);
                     edge.intersectPoints.Add(position);
                     edge.inside.Add(i);
+                    edge.edges[i] = position;
                 }
                 else if (inside) edge.inside.Add(i);
             }
         }
     }
 
-    private bool CheckEdge(SplineEdge edge, Vector3 lineStart, Vector3 lineEnd, out Vector3 position)
+    private bool CheckEdge(SplineEdge edge, Vector3 lineStart, Vector3 lineEnd, out Vector3 position, float offset = .001f)
     {
         position = Vector3.zero;
         for (int i = 0; i < edge.edges.Count - 1; i++)
         {
-            bool intersect = EdgeHelpers.CheckIntersect(lineStart, lineEnd, edge.edges[i], edge.edges[i + 1], out position);
+            bool intersect = EdgeHelpers.CheckIntersect(lineStart, lineEnd, edge.edges[i], edge.edges[i + 1], out position, offset);
             if (intersect) return true;
         }
         return false;

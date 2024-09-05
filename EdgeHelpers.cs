@@ -2,7 +2,7 @@
 
 public static class EdgeHelpers
 {
-    public static bool CheckIntersect(Vector3 vectorA, Vector3 vectorB, Vector3 vector1, Vector3 vector2, out Vector3 point)
+    public static bool CheckIntersect(Vector3 vectorA, Vector3 vectorB, Vector3 vector1, Vector3 vector2, out Vector3 point, float offset = .001f)
     {
         point = Vector3.zero;
         float A1 = vectorB.z - vectorA.z;
@@ -19,12 +19,11 @@ public static class EdgeHelpers
         float x = (B2 * C1 - B1 * C2) / delta;
         float y = (A1 * C2 - A2 * C1) / delta;
         point = new Vector3(x, 0, y);
-        return (OnLine(vectorA, vectorB, x, y) && OnLine(vector1, vector2, x, y));
+        return (OnLine(vectorA, vectorB, x, y, offset) && OnLine(vector1, vector2, x, y, offset));
     }
 
-    private static bool OnLine(Vector3 vectorA, Vector3 vectorB, float x, float y)
+    private static bool OnLine(Vector3 vectorA, Vector3 vectorB, float x, float y, float offset)
     {
-        float offset = .001f;
         float smallX = vectorA.x < vectorB.x ? vectorA.x : vectorB.x;
         if (x + offset < smallX) return false;
         float bigX = vectorA.x > vectorB.x ? vectorA.x : vectorB.x;
